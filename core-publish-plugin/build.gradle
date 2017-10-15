@@ -42,9 +42,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath('io.github.lizhangqu:core-publish:1.0.0-SNAPSHOT') {
-            changing = true
-        }
+        classpath('io.github.lizhangqu:core-publish:1.0.0')
     }
     configurations.all {
         it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
