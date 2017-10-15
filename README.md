@@ -44,6 +44,8 @@ PROJECT_POM_ARTIFACT_ID=core-publish
 PROJECT_POM_VERSION=1.0.0-SNAPSHOT
 ```
 
+暂时不支持android gradle plugin 3.0 implementation 依赖，会丢失传递依赖
+
 
 ## Maven发布配置
 
@@ -139,7 +141,7 @@ gradle :moduleName:uploadRelease
 ```
 uploadRelease这个task只是依赖了release这个task，没做其他多余工作
 
-release发布依赖io.github.lizhangqu:gradle-release:1.0.0插件，默认使用递增版本号配置，如果需要，请覆写其配置项
+release发布依赖io.github.lizhangqu:core-release:1.0.0插件，默认使用递增版本号配置，如果需要，请覆写其配置项
 
 ```
 release {
