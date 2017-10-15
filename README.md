@@ -16,6 +16,7 @@ buildscript {
     }
     dependencies {
         classpath 'io.github.lizhangqu:core-publish:1.0.0'
+        //classpath 'io.github.lizhangqu:core-publish:1.0.1' //gradle 4.0+
     }
 }
 ```
