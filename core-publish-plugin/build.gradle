@@ -1,0 +1,67 @@
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+configurations {
+    provided
+}
+idea {
+    module {
+        scopes.PROVIDED.plus += [configurations.provided]
+    }
+}
+sourceSets {
+    main {
+        compileClasspath += configurations.provided
+    }
+}
+sourceSets {
+    main {
+        groovy.srcDirs = ['src/main/groovy']
+        java.srcDirs = ['src/main/java']
+        resources.srcDirs = ['src/main/resources']
+    }
+}
+
+dependencies {
+    compile localGroovy()
+    compile gradleApi()
+    provided "com.android.tools.build:gradle:2.3.3"
+    compile "com.github.dcendents:android-maven-gradle-plugin:1.5"
+    compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+    compile 'io.github.lizhangqu:core-release:1.0.0'
+}
+
+buildscript {
+    repositories {
+        mavenLocal()
+        jcenter()
+    }
+    dependencies {
+        classpath('io.github.lizhangqu:core-publish:1.0.0-SNAPSHOT') {
+            changing = true
+        }
+    }
+    configurations.all {
+        it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
+        it.resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
+    }
+}
+
+ext {
+    RELEASE_REPOSITORY_URL = "file://${project.rootProject.file('repo/release')}"
+    SNAPSHOT_REPOSITORY_URL = "file://${project.rootProject.file('repo/snapshot')}"
+    RELEASE_REPOSITORY_USERNAME = ""
+    RELEASE_REPOSITORY_PASSWORD = ""
+    SNAPSHOT_REPOSITORY_USERNAME = ""
+    SNAPSHOT_REPOSITORY_PASSWORD = ""
+}
+apply plugin: 'core.publish'
+
+release {
+    versionKey = 'PROJECT_POM_VERSION'
+}
