@@ -31,7 +31,7 @@ dependencies {
     compile localGroovy()
     compile gradleApi()
     provided "com.android.tools.build:gradle:2.3.3"
-    compile "com.github.dcendents:android-maven-gradle-plugin:1.5"
+    compile "com.github.dcendents:android-maven-gradle-plugin:2.0"
     compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     compile 'io.github.lizhangqu:core-release:1.0.0'
 }
