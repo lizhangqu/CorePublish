@@ -9,6 +9,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.plugins.AndroidMavenPlugin
 import org.gradle.api.plugins.PluginContainer
+import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -47,6 +48,8 @@ class CorePublishPlugin implements Plugin<Project> {
         configInstall(project)
         //uploadArchives task
         configUploadArchives(project)
+        //publishing
+        configPublishing(project)
         //bintrayUpload task
         configBintray(project)
         //task dependency
@@ -305,6 +308,69 @@ class CorePublishPlugin implements Plugin<Project> {
         }
     }
 
+
+    @SuppressWarnings("UnnecessaryQualifiedReference")
+    static def configPublishing(Project project) {
+        project.publishing {
+            repositories {
+                if (isReleaseBuild(project)) {
+                    def releaseRepositoryUrl = CorePublishPlugin.getReleaseRepositoryUrl(project)
+                    if (releaseRepositoryUrl) {
+                        maven {
+                            url releaseRepositoryUrl
+                            def releaseRepositoryUsername = CorePublishPlugin.getReleaseRepositoryUsername(project)
+                            def releaseRepositoryPassword = CorePublishPlugin.getReleaseRepositoryPassword(project)
+                            if (releaseRepositoryUsername && releaseRepositoryPassword) {
+                                credentials {
+                                    username = releaseRepositoryUsername
+                                    password = releaseRepositoryPassword
+                                }
+                            }
+                        }
+                    } else {
+                        mavenLocal()
+                    }
+                } else {
+                    def snapshotRepositoryUrl = CorePublishPlugin.getSnapshotRepositoryUrl(project)
+                    if (snapshotRepositoryUrl) {
+                        maven {
+                            url snapshotRepositoryUrl
+                            def snapshotRepositoryUsername = CorePublishPlugin.getSnapshotRepositoryUsername(project)
+                            def snapshotRepositoryPassword = CorePublishPlugin.getSnapshotRepositoryPassword(project)
+                            if (snapshotRepositoryUsername && snapshotRepositoryPassword) {
+                                credentials {
+                                    username = snapshotRepositoryUsername
+                                    password = snapshotRepositoryPassword
+                                }
+                            }
+                        }
+                    } else {
+                        mavenLocal()
+                    }
+                }
+            }
+
+            publications {
+                maven(MavenPublication) {
+                    groupId project.group
+                    artifactId project.archivesBaseName
+                    version project.version
+
+                    //then need to config artifact
+                    //like this in build.gradle
+                    // publishing {
+                    //     publications {
+                    //         maven(MavenPublication) {
+                    //             artifact "${project.buildDir}/outputs/apk/${project.archivesBaseName}-debug.ap"
+                    //         }
+                    //     }
+                    // }
+
+                }
+            }
+        }
+    }
+
     @SuppressWarnings("UnnecessaryQualifiedReference")
     static def configBintray(Project project) {
         def bintrayUser = CorePublishPlugin.getBintrayUser(project)
@@ -391,7 +457,7 @@ class CorePublishPlugin implements Plugin<Project> {
 
             //must use this way, if direct find the task we can't get the task
             project.tasks.all { Task task ->
-                if (task.name.equalsIgnoreCase('publishMavenPublicationToMavenLocal')) {
+                if (task.name.equalsIgnoreCase('generatePomFileForMavenPublication')) {
                     task.dependsOn project.tasks.getByName('assemble')
                 }
             }
@@ -459,6 +525,10 @@ class CorePublishPlugin implements Plugin<Project> {
             return
         }
         pluginManager.apply(pluginClazz)
+    }
+
+    static def isReleaseBuild(Project project) {
+        return project.version && (!project.version.toString().toLowerCase().contains("snapshot"))
     }
 
     static def loadLocalProperties(Project project) {
