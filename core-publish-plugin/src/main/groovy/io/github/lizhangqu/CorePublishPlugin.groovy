@@ -28,6 +28,10 @@ class CorePublishPlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
+        def taskNames = project.gradle.startParameter.getTaskNames()
+        if (taskNames != null && taskNames.contains("uploadArchives")) {
+            throw new GradleException("please use uploadSnapshot or uploadRelease instead. uploadArchives is forbidden")
+        }
         //resolutionStrategy
         configResolutionStrategy(project)
         //read local properties
