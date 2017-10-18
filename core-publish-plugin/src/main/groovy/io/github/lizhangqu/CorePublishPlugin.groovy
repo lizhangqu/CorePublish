@@ -432,15 +432,10 @@ class CorePublishPlugin implements Plugin<Project> {
                 uploadArchivesTask.group = 'upload'
             }
 
-            if (installTask || uploadArchivesTask) {
-                def installAndUploadTask = project.task("installAndUpload")
+            if (uploadArchivesTask) {
                 if (installTask) {
-                    installAndUploadTask.dependsOn installTask
+                    uploadArchivesTask.dependsOn installTask
                 }
-                if (uploadArchivesTask) {
-                    installAndUploadTask.dependsOn uploadArchivesTask
-                }
-                installAndUploadTask.group = 'upload'
             }
 
             if (bintrayUploadTask) {
@@ -515,7 +510,9 @@ class CorePublishPlugin implements Plugin<Project> {
         def uploadSnapshot = project.task(dependsOn: project.uploadArchives, 'uploadSnapshot') {
             setGroup('upload')
         }
+
         uploadSnapshot.dependsOn checkSnapshotVersion
+        project.install.mustRunAfter checkSnapshotVersion
         project.uploadArchives.mustRunAfter checkSnapshotVersion
     }
 
