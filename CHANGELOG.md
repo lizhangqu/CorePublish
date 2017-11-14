@@ -15,3 +15,8 @@
  
   - 升级android-maven-gradle-plugin版本降到1.5
   - 废弃uploadArchives
+  
+1.0.3
+---------------
+ 
+  - 修复SNAPSHOT版本判断错误的bug

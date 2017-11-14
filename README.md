@@ -9,18 +9,20 @@ classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
 
 以及移除原先的发布脚本
 
+然后在buildscript中加入classpath依赖
+
 ```
 buildscript {
     repositories {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.0.0'
-        //classpath 'io.github.lizhangqu:core-publish:1.0.1' //gradle 4.0+
+        classpath 'io.github.lizhangqu:core-publish:1.0.3'
     }
 }
 ```
 
+配置相关属性并应用插件
 ```
 ext {
     RELEASE_REPOSITORY_URL = "file://${project.rootProject.file('repo/release')}"
