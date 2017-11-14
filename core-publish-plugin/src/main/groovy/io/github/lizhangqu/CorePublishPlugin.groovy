@@ -529,7 +529,7 @@ class CorePublishPlugin implements Plugin<Project> {
     }
 
     static def isReleaseBuild(Project project) {
-        def pomVersion = PublishPlugin.getPomVersion(project)
+        def pomVersion = CorePublishPlugin.getPomVersion(project)
         return pomVersion && (!pomVersion.toLowerCase().contains("snapshot"))
     }
 
