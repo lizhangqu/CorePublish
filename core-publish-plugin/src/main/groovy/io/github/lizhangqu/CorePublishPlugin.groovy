@@ -512,7 +512,7 @@ class CorePublishPlugin implements Plugin<Project> {
 
     //必须静态，否则无法共享
     static Boolean isBintrayUpload = null
-
+    @SuppressWarnings("UnnecessaryQualifiedReference")
     static def configTask(Project project) {
         def releaseTask = project.tasks.findByName('release')
         project.task(dependsOn: releaseTask, 'uploadBintray') {
