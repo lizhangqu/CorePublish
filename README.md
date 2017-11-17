@@ -17,7 +17,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.0.3'
+        classpath 'io.github.lizhangqu:core-publish:1.0.4'
     }
 }
 ```
