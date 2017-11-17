@@ -14,6 +14,7 @@ import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.jvm.tasks.Jar
+import org.gradle.util.NameMatcher
 
 import java.util.concurrent.TimeUnit
 import java.util.regex.Matcher
@@ -32,6 +33,9 @@ class CorePublishPlugin implements Plugin<Project> {
         if (taskNames != null && taskNames.contains("uploadArchives")) {
             throw new GradleException("please use uploadSnapshot or uploadRelease instead. uploadArchives is forbidden")
         }
+        if (taskNames != null && taskNames.contains("bintrayUpload")) {
+            throw new GradleException("please use uploadBintray instead. bintrayUpload is forbidden")
+        }
         //resolutionStrategy
         configResolutionStrategy(project)
         //read local properties
@@ -42,8 +46,6 @@ class CorePublishPlugin implements Plugin<Project> {
         compatibleJava8(project)
         //force Java/JavaDoc encode with UTF-8
         utf8WithJavaCompile(project)
-        //pom poi
-        configPomPOI(project)
         //add plugin
         applyThirdPlugin(project)
         //javaDoc javaSource
@@ -94,16 +96,6 @@ class CorePublishPlugin implements Plugin<Project> {
         project.tasks.withType(Javadoc) {
             options.encoding = "utf-8"
         }
-    }
-
-    static def configPomPOI(Project project) {
-        def pomGroupId = getPomGroupId(project)
-        def pomArtifactId = getPomArtifactId(project)
-        def pomVersion = getPomVersion(project)
-
-        project.group = pomGroupId
-        project.archivesBaseName = pomArtifactId
-        project.version = pomVersion
     }
 
     static def applyThirdPlugin(Project project) {
@@ -166,18 +158,23 @@ class CorePublishPlugin implements Plugin<Project> {
         }
     }
 
+
     @SuppressWarnings("UnnecessaryQualifiedReference")
     static def configInstall(Project project) {
         project.install {
             repositories {
                 mavenInstaller {
                     pom.project {
-                        // This generates POM.xml with proper parameters
-                        groupId = project.group
-                        artifactId = project.archivesBaseName
-                        version = project.version
+                        def pomGroupId = CorePublishPlugin.getPomGroupId(project)
+                        def pomArtifactId = CorePublishPlugin.getPomArtifactId(project)
+                        def pomVersion = CorePublishPlugin.getPomVersion(project)
 
-                        name project.archivesBaseName
+                        // This generates POM.xml with proper parameters
+                        groupId = pomGroupId
+                        artifactId = pomArtifactId
+                        version = pomVersion
+
+                        name pomArtifactId
 
                         def pomWebsiteUrl = CorePublishPlugin.getPomWebsiteUrl(project)
                         if (pomWebsiteUrl) {
@@ -233,9 +230,13 @@ class CorePublishPlugin implements Plugin<Project> {
         project.uploadArchives {
             repositories {
                 mavenDeployer {
-                    pom.groupId = project.group
-                    pom.artifactId = project.archivesBaseName
-                    pom.version = project.version
+                    def pomGroupId = CorePublishPlugin.getPomGroupId(project)
+                    def pomArtifactId = CorePublishPlugin.getPomArtifactId(project)
+                    def pomVersion = CorePublishPlugin.getPomVersion(project)
+
+                    pom.groupId = pomGroupId
+                    pom.artifactId = pomArtifactId
+                    pom.version = pomVersion
 
                     def releaseRepositoryUrl = CorePublishPlugin.getReleaseRepositoryUrl(project)
                     if (releaseRepositoryUrl) {
@@ -260,7 +261,7 @@ class CorePublishPlugin implements Plugin<Project> {
                     }
 
                     pom.project {
-                        name project.archivesBaseName
+                        name pomArtifactId
 
                         def pomWebsiteUrl = CorePublishPlugin.getPomWebsiteUrl(project)
                         if (pomWebsiteUrl) {
@@ -312,7 +313,6 @@ class CorePublishPlugin implements Plugin<Project> {
         }
     }
 
-
     @SuppressWarnings("UnnecessaryQualifiedReference")
     static def configPublishing(Project project) {
         project.publishing {
@@ -356,19 +356,23 @@ class CorePublishPlugin implements Plugin<Project> {
 
             publications {
                 maven(MavenPublication) {
-                    groupId project.group
-                    artifactId project.archivesBaseName
-                    version project.version
+                    def pomGroupId = CorePublishPlugin.getPomGroupId(project)
+                    def pomArtifactId = CorePublishPlugin.getPomArtifactId(project)
+                    def pomVersion = CorePublishPlugin.getPomVersion(project)
+
+                    groupId pomGroupId
+                    artifactId pomArtifactId
+                    version pomVersion
 
                     //then need to config artifact
                     //like this in build.gradle
-                    // publishing {
-                    //     publications {
-                    //         maven(MavenPublication) {
-                    //             artifact "${project.buildDir}/outputs/apk/${project.archivesBaseName}-debug.ap"
-                    //         }
-                    //     }
-                    // }
+                    //publishing {
+                    //    publications {
+                    //        maven(MavenPublication) {
+                    //            artifact "${project.buildDir}/outputs/apk/${project.name}-debug.ap"
+                    //        }
+                    //    }
+                    //}
 
                 }
             }
@@ -377,6 +381,7 @@ class CorePublishPlugin implements Plugin<Project> {
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
     static def configBintray(Project project) {
+
         def bintrayUser = CorePublishPlugin.getBintrayUser(project)
         def bintrayKey = CorePublishPlugin.getBintrayKey(project)
         if (bintrayUser && bintrayKey) {
@@ -385,9 +390,17 @@ class CorePublishPlugin implements Plugin<Project> {
                 key = bintrayKey
                 configurations = ['archives']
 
+                def pomGroupId = CorePublishPlugin.getPomGroupId(project)
+                def pomArtifactId = CorePublishPlugin.getPomArtifactId(project)
+                def pomVersion = CorePublishPlugin.getPomVersion(project)
+
+                project.group = pomGroupId
+                project.archivesBaseName = pomArtifactId
+                project.version = pomVersion
+
                 pkg {
                     repo = 'maven'
-                    name = project.archivesBaseName
+                    name = pomArtifactId
                     def pomDescription = CorePublishPlugin.getPomDescription(project)
                     if (pomDescription) {
                         desc = pomDescription
@@ -451,6 +464,7 @@ class CorePublishPlugin implements Plugin<Project> {
                 bintrayUploadTask.group = 'upload'
                 if (!bintrayUser || !bintrayKey) {
                     bintrayUploadTask.enabled = false
+                    project.logger.error("bintrayUpload is disabled because you don't provider bintrayUser and bintrayKey")
                 }
             }
 
@@ -494,30 +508,90 @@ class CorePublishPlugin implements Plugin<Project> {
                 commitVersionFileOnly = false
             }
         }
-        project.afterReleaseBuild.dependsOn project.uploadArchives
     }
+
+    //必须静态，否则无法共享
+    static Boolean isBintrayUpload = null
 
     static def configTask(Project project) {
         def releaseTask = project.tasks.findByName('release')
-        project.task(dependsOn: releaseTask, 'uploadRelease') {
+        project.task(dependsOn: releaseTask, 'uploadBintray') {
             setGroup('upload')
         }
-
-        def checkSnapshotVersion = project.task('checkSnapshotVersion') {
+        project.task(dependsOn: releaseTask, 'uploadRelease') {
             setGroup('upload')
-            doLast {
-                if (project.version && !project.version.toString().toLowerCase().contains("-snapshot")) {
-                    throw new GradleException("SNAPSHOT build must contains -SNAPSHOT in version")
-                }
-            }
         }
         def uploadSnapshot = project.task(dependsOn: project.uploadArchives, 'uploadSnapshot') {
             setGroup('upload')
         }
 
-        uploadSnapshot.dependsOn checkSnapshotVersion
-        project.install.mustRunAfter checkSnapshotVersion
-        project.uploadArchives.mustRunAfter checkSnapshotVersion
+
+        project.afterEvaluate {
+            List<String> taskNames = project.gradle.startParameter.taskNames
+            if (taskNames != null && taskNames.size() > 0) {
+                String startTaskName = taskNames.get(0)
+                project.logger.error("startTaskName:${startTaskName}")
+                NameMatcher matcher = new NameMatcher()
+                String actualName = matcher.find(startTaskName, project.tasks.asMap.keySet())
+                project.logger.error("actualName:${actualName}")
+
+                //isBintrayUpload逻辑比较变态，不是特别熟悉gradle的话勿动
+                if (isBintrayUpload == null) {
+                    if (actualName != null) {
+                        if (actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload")) {
+                            isBintrayUpload = true
+                        }
+                    } else {
+                        if (startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload")) {
+                            isBintrayUpload = true
+                        }
+                    }
+                } else {
+                    if (startTaskName.contains("createScmAdapter")) {
+                        //not handle
+                        //moduleName:createScmAdapter
+                    } else if (startTaskName.contains("beforeReleaseBuild")) {
+                        //not handle
+                        //moduleName:moduleName:beforeReleaseBuild
+                    } else {
+                        if (actualName != null) {
+                            if (!(actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload"))) {
+                                isBintrayUpload = false
+                            } else if (actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload")) {
+                                isBintrayUpload = true
+                            }
+                        } else {
+                            if (!(startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload"))) {
+                                isBintrayUpload = false
+                            } else if (startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload")) {
+                                isBintrayUpload = true
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            project.logger.error("isBintrayUpload:${isBintrayUpload}")
+
+            if (isBintrayUpload != null && isBintrayUpload) {
+                project.afterReleaseBuild.dependsOn project.bintrayUpload
+            } else {
+                project.afterReleaseBuild.dependsOn project.uploadArchives
+                def checkSnapshotVersion = project.task('checkSnapshotVersion') {
+                    setGroup('upload')
+                    doLast {
+                        def pomVersion = PublishPlugin.getPomVersion(project)
+                        if (pomVersion && !pomVersion.toLowerCase().contains("-snapshot")) {
+                            throw new GradleException("SNAPSHOT build must contains -SNAPSHOT in version")
+                        }
+                    }
+                }
+                uploadSnapshot.dependsOn checkSnapshotVersion
+                project.install.mustRunAfter checkSnapshotVersion
+                project.uploadArchives.mustRunAfter checkSnapshotVersion
+            }
+        }
     }
 
     static def applyPluginIfNotApply(Project project, Class<? extends Plugin> pluginClazz) {
@@ -528,6 +602,8 @@ class CorePublishPlugin implements Plugin<Project> {
         pluginManager.apply(pluginClazz)
     }
 
+    //whether contains snapshot in version
+    @SuppressWarnings("UnnecessaryQualifiedReference")
     static def isReleaseBuild(Project project) {
         def pomVersion = CorePublishPlugin.getPomVersion(project)
         return pomVersion && (!pomVersion.toLowerCase().contains("snapshot"))
