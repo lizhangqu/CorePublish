@@ -581,7 +581,7 @@ class CorePublishPlugin implements Plugin<Project> {
                 def checkSnapshotVersion = project.task('checkSnapshotVersion') {
                     setGroup('upload')
                     doLast {
-                        def pomVersion = PublishPlugin.getPomVersion(project)
+                        def pomVersion = CorePublishPlugin.getPomVersion(project)
                         if (pomVersion && !pomVersion.toLowerCase().contains("-snapshot")) {
                             throw new GradleException("SNAPSHOT build must contains -SNAPSHOT in version")
                         }
