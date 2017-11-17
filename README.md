@@ -197,10 +197,14 @@ gradle :moduleName:uploadSnapshot
 
 uploadSnapshot这个task依赖uploadArchives，发布时请确保版本号为SNAPSHOT，如果未追加-SNAPSHOT，则会抛出异常
 
+注意不要使用uploadArchives，此Task被禁用，被uploadRelease和uploadSnapshot取代
+
 ## Bintray发布
 
 Bintray只支持release发布，使用命令，发布后需要同步到jcenter的需要到后台进行处理，首次发布需要审核，更多详情见https://bintray.com/
 
 ```
-gradle :moduleName:bintrayUpload
+gradle :moduleName:uploadBintray
 ```
+
+注意不要使用bintrayUpload，此Task被禁用
