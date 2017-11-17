@@ -32,3 +32,4 @@
  
   - 修复SNAPSHOT包上传失败
   - 支持主动设置project的group，archivesBaseName，version
+  - 支持android gradle plugin 3.0.0
