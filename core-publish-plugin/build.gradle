@@ -30,8 +30,17 @@ sourceSets {
 dependencies {
     compile localGroovy()
     compile gradleApi()
-    provided "com.android.tools.build:gradle:2.3.3"
-    compile "com.github.dcendents:android-maven-gradle-plugin:1.5"
+
+    def androidGradlePluginVersion = "2.3.3"
+    def androidMavenPluginVersion = "1.5"
+
+    if (project.hasProperty('gradle3.0.0')) {
+        androidGradlePluginVersion = "3.0.0"
+        androidMavenPluginVersion = "2.0"
+    }
+
+    provided "com.android.tools.build:gradle:${androidGradlePluginVersion}"
+    compile "com.github.dcendents:android-maven-gradle-plugin:${androidMavenPluginVersion}"
     compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     compile 'io.github.lizhangqu:core-release:1.0.0'
 }
@@ -51,6 +60,17 @@ buildscript {
 }
 
 ext {
+
+    def artifact_id = "core-publish"
+
+    if (project.hasProperty('gradle3.0.0')) {
+        artifact_id = "core-publish-gradle3.0.0"
+    }
+
+    PROJECT_POM_GROUP_ID = "io.github.lizhangqu"
+    PROJECT_POM_ARTIFACT_ID = "${artifact_id}"
+    PROJECT_POM_VERSION = "${POM_VERSION}"
+
     RELEASE_REPOSITORY_URL = "file://${project.rootProject.file('repo/release')}"
     SNAPSHOT_REPOSITORY_URL = "file://${project.rootProject.file('repo/snapshot')}"
     RELEASE_REPOSITORY_USERNAME = ""
@@ -61,5 +81,5 @@ ext {
 apply plugin: 'core.publish'
 
 release {
-    versionKey = 'PROJECT_POM_VERSION'
+    versionKey = 'POM_VERSION'
 }
