@@ -24,6 +24,7 @@ import java.util.regex.Matcher
  */
 class CorePublishPlugin implements Plugin<Project> {
     private static boolean enableJavadoc = false
+    private static boolean enablePomCoordinate = false
 
     static Properties properties = new Properties()
 
@@ -66,12 +67,29 @@ class CorePublishPlugin implements Plugin<Project> {
         configTask(project)
     }
 
+    @SuppressWarnings("UnnecessaryQualifiedReference")
     static def loadSwitchValue(Project project) {
         def enableDoc = getEnableJavadoc(project)
         if (enableDoc != null && enableDoc.equalsIgnoreCase("true")) {
             enableJavadoc = true
         }
+
+        def enablePOM = getEnableCoordinate(project)
+        if (enablePOM != null && enablePOM.equalsIgnoreCase("true")) {
+            enablePomCoordinate = true
+        }
+
+        if (enablePomCoordinate) {
+            def pomGroupId = CorePublishPlugin.getPomGroupId(project)
+            def pomArtifactId = CorePublishPlugin.getPomArtifactId(project)
+            def pomVersion = CorePublishPlugin.getPomVersion(project)
+
+            project.group = pomGroupId
+            project.archivesBaseName = pomArtifactId
+            project.version = pomVersion
+        }
     }
+
 
     static def configResolutionStrategy(Project project) {
         project.configurations.all {
@@ -512,6 +530,7 @@ class CorePublishPlugin implements Plugin<Project> {
 
     //必须静态，否则无法共享
     static Boolean isBintrayUpload = null
+
     @SuppressWarnings("UnnecessaryQualifiedReference")
     static def configTask(Project project) {
         def releaseTask = project.tasks.findByName('release')
@@ -716,5 +735,9 @@ class CorePublishPlugin implements Plugin<Project> {
 
     static def getEnableJavadoc(Project project) {
         return project.hasProperty('POM_ENABLE_JAVADOC') ? project.ext.POM_ENABLE_JAVADOC : readPropertyFromLocalPropertiesOrThrow(project, 'POM_ENABLE_JAVADOC', 'false', false)
+    }
+
+    static def getEnableCoordinate(Project project) {
+        return project.hasProperty('POM_ENABLE_COORDINATE') ? project.ext.POM_ENABLE_COORDINATE : readPropertyFromLocalPropertiesOrThrow(project, 'POM_ENABLE_COORDINATE', 'false', false)
     }
 }

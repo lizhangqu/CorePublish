@@ -93,6 +93,7 @@ POM_DEVELOPER_ID=
 POM_DEVELOPER_NAME=
 POM_DEVELOPER_EMAIL=
 POM_ENABLE_JAVADOC=false //是否生成javadoc
+POM_ENABLE_COORDINATE=false //是否主动设置project的group，archivesBaseName，version
 ```
 
 ### build.gradle
@@ -112,6 +113,7 @@ project.ext{
 	POM_DEVELOPER_NAME=
 	POM_DEVELOPER_EMAIL=
 	POM_ENABLE_JAVADOC=false //是否生成javadoc
+	POM_ENABLE_COORDINATE=false //是否主动设置project的group，archivesBaseName，version
 }
 ```
 
@@ -131,6 +133,7 @@ POM_DEVELOPER_ID=
 POM_DEVELOPER_NAME=
 POM_DEVELOPER_EMAIL=
 POM_ENABLE_JAVADOC=false //是否生成javadoc
+POM_ENABLE_COORDINATE=false //是否主动设置project的group，archivesBaseName，version
 ```
 
 ## maven发布

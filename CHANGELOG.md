@@ -20,3 +20,15 @@
 ---------------
  
   - 修复SNAPSHOT版本判断错误的bug
+  
+1.0.4
+---------------
+ 
+  - 修复若干bug
+  - 支持bintrayUpload release
+ 
+1.0.5
+---------------
+ 
+  - 修复SNAPSHOT包上传失败
+  - 支持主动设置project的group，archivesBaseName，version
