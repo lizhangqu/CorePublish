@@ -3,6 +3,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 
 repositories {
+    maven { url 'https://dl.google.com/dl/android/maven2/' }
     mavenLocal()
     jcenter()
 }
