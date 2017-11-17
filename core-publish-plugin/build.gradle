@@ -62,4 +62,8 @@ apply plugin: 'core.publish'
 
 release {
     versionKey = 'PROJECT_POM_VERSION'
+
+    git {
+        requireBranch = 'feature/test'
+    }
 }
