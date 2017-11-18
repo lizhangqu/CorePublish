@@ -81,11 +81,11 @@ ext {
 }
 apply plugin: 'core.publish'
 
-def tagTemplate = '${name}/${version}'
+def temptlate = '${name}/${version}'
 if (project.hasProperty('gradle3.0.0')) {
-    tagTemplate = '${name}/gradle3.0.0/${version}'
+    temptlate = '${name}/gradle3.0.0/${version}'
 }
 release {
-    tagTemplate = "${tagTemplate}"
+    tagTemplate = "${temptlate}"
     versionKey = 'POM_VERSION'
 }
