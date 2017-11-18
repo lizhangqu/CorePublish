@@ -33,3 +33,8 @@
   - 修复SNAPSHOT包上传失败
   - 支持主动设置project的group，archivesBaseName，version
   - 支持android gradle plugin 3.0.0
+  
+1.0.6
+---------------
+ 
+  - 修复静态变量导致的配置覆盖现象

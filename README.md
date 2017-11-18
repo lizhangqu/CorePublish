@@ -17,9 +17,9 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.0.5'
+        classpath 'io.github.lizhangqu:core-publish:1.0.6'
         //android gradle plugin 3.0.0以上请使用以下版本
-        //classpath 'io.github.lizhangqu:core-publish-gradle3.0.0:1.0.5'
+        //classpath 'io.github.lizhangqu:core-publish-gradle3.0.0:1.0.6'
     }
 }
 ```
