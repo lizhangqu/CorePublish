@@ -134,7 +134,6 @@ class CorePublishPlugin implements Plugin<Project> {
             def androidJavadocs = project.task(type: Javadoc, 'androidJavadocs') {
                 source = project.android.sourceSets.main.java.srcDirs
                 classpath += project.configurations.compile
-                classpath += project.configurations.provided
                 classpath += project.files("${project.android.getBootClasspath().join(File.pathSeparator)}")
                 failOnError false
             }
