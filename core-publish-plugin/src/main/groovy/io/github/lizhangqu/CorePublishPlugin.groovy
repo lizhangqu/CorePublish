@@ -670,7 +670,7 @@ class CorePublishPlugin implements Plugin<Project> {
     }
 
     static def getSnapshotRepositoryUsername(Project project) {
-        return hasProperty('SNAPSHOT_REPOSITORY_USERNAME') ? project.ext.SNAPSHOT_REPOSITORY_USERNAME : readPropertyFromLocalPropertiesOrThrow(project, 'SNAPSHOT_REPOSITORY_USERNAME', null, false)
+        return project.hasProperty('SNAPSHOT_REPOSITORY_USERNAME') ? project.ext.SNAPSHOT_REPOSITORY_USERNAME : readPropertyFromLocalPropertiesOrThrow(project, 'SNAPSHOT_REPOSITORY_USERNAME', null, false)
     }
 
     static def getSnapshotRepositoryPassword(Project project) {
