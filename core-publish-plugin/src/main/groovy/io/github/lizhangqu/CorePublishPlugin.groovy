@@ -69,14 +69,14 @@ class CorePublishPlugin implements Plugin<Project> {
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def loadSwitchValue(Project project) {
         def enableDoc = getEnableJavadoc(project)
-        if (enableDoc != null && enableDoc.equalsIgnoreCase("true")) {
+        if (enableDoc != null && String.valueOf(enableDoc).equalsIgnoreCase("true")) {
             enableJavadoc = true
         }
 
         project.logger.error("${project.path} enableJavadoc:${enableJavadoc}")
 
         def enablePOM = getEnableCoordinate(project)
-        if (enablePOM != null && enablePOM.equalsIgnoreCase("true")) {
+        if (enablePOM != null && String.valueOf(enablePOM).equalsIgnoreCase("true")) {
             enablePomCoordinate = true
         }
 
