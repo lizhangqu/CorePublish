@@ -49,7 +49,7 @@ PROJECT_POM_ARTIFACT_ID=core-publish
 PROJECT_POM_VERSION=1.0.0-SNAPSHOT
 ```
 
-暂时不支持android gradle plugin 3.0 implementation 依赖，会丢失传递依赖
+如果使用android gradle plugin 3.0 implementation 依赖，请使用gradle3.0.0对应的版本
 
 
 ## Maven发布配置
