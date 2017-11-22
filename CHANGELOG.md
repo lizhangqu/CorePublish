@@ -43,3 +43,8 @@
 ---------------
  
   - 修复android gradle plugin 3.0.0 javadoc问题
+  
+1.0.8
+---------------
+ 
+  - 修复true/false转型失败

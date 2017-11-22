@@ -213,3 +213,18 @@ gradle :moduleName:uploadBintray
 ```
 
 注意不要使用bintrayUpload，此Task被禁用
+
+## 自定义发布
+
+如果你需要自定义发布一些文件，需要自己进行publishing，如下
+
+
+```
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact "${project.buildDir}/libs/${project.archivesBaseName}-${project.version}.jar"
+        }
+    }
+}
+```

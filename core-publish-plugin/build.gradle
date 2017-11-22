@@ -89,3 +89,11 @@ release {
     tagTemplate = "${template}"
     versionKey = 'POM_VERSION'
 }
+
+//publishing {
+//    publications {
+//        maven(MavenPublication) {
+//            artifact "${project.buildDir}/libs/${project.archivesBaseName}-${project.version}.jar"
+//        }
+//    }
+//}
