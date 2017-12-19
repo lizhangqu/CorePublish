@@ -493,6 +493,13 @@ class CorePublishPlugin implements Plugin<Project> {
                 if (task.name.equalsIgnoreCase('generatePomFileForMavenPublication')) {
                     task.dependsOn project.tasks.getByName('assemble')
                 }
+                if (task.name.equalsIgnoreCase('install')) {
+                    if (project.hasProperty("android")) {
+                        task.dependsOn project.tasks.getByName('assembleRelease')
+                    } else {
+                        task.dependsOn project.tasks.getByName('assemble')
+                    }
+                }
             }
 
         }
