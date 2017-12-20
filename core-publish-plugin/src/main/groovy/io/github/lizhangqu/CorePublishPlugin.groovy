@@ -127,6 +127,7 @@ class CorePublishPlugin implements Plugin<Project> {
         applyPluginIfNotApply(project, BintrayPlugin.class)
         applyPluginIfNotApply(project, MavenPluginCompat.class)
         applyPluginIfNotApply(project, ReleasePlugin.class)
+        applyPluginIfNotApply(project, NativeCompilePlugin.class)
     }
 
 
