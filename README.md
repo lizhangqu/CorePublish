@@ -288,8 +288,8 @@ project.artifacts {
 ## native动态库依赖
 
 ```
-apply plugin: 'android.native'
-//apply plugin: 'android.publish' //包含了android.native插件
+apply plugin: 'core.native'
+//apply plugin: 'core.publish' //包含了core.native插件
 
 dependencies {
 	nativeCompile 'com.snappydb:snappydb-native:0.2.0:armeabi@so'
