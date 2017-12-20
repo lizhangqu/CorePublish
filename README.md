@@ -18,11 +18,11 @@ buildscript {
     }
     dependencies {
         classpath 'io.github.lizhangqu:core-publish:1.0.11'
-        //android gradle plugin 3.0.0以上请使用以下版本
-        //classpath 'io.github.lizhangqu:core-publish-gradle3.0.0:1.0.11'
     }
 }
 ```
+
+最低支持gradle 2.10，低于gradle 2.10时会报错，最高支持到gradle 4.4
 
 配置相关属性并应用插件
 ```
@@ -76,8 +76,8 @@ BINTRAY_APIKEY =
 
 ## 支持属性列表
 
-其中发布到maven时PROJECT_POM_GROUP_ID，PROJECT_POM_ARTIFACT_ID，PROJECT_POM_VERSION是必选项，其他未可选项。
-对于发布到Bintray时，所有配置基本都是必选项，建议根据控制台错误信息进行配置。
+其中发布到maven时PROJECT_POM_GROUP_ID，PROJECT_POM_ARTIFACT_ID，PROJECT_POM_VERSION是必选项，如果未设置，则使用默认值rootProject.name:project.name:unspecific。其他为可选项。
+对于发布到Bintray时，其他配置基本都是必选项，建议根据控制台错误信息进行配置。
 
 ### gradle.properties
 
@@ -216,7 +216,7 @@ gradle :moduleName:uploadBintray
 
 ## 自定义发布
 
-如果你需要自定义发布一些文件，需要自己定义publishing，如下
+如果你需要自定义发布一些文件，需要自己定义publishing，然后使用gradle publis发布，如下
 
 
 ```
@@ -228,3 +228,75 @@ publishing {
     }
 }
 ```
+
+## 自定义多pom发布
+
+```
+project.afterEvaluate {
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                addFilter("yourPomName1") { artifact, file ->
+                    artifact.name == "yourPomName1"
+                }
+
+                addFilter("yourPomName2") { artifact, file ->
+                    artifact.name == "yourPomName2"
+                }
+
+                pom("yourPomName1") {
+                    groupId = 'group1'
+                    artifactId = "name1"
+                    version = "version1"
+                    packaging = 'so'
+                }
+
+                pom("yourPomName2") {
+                    groupId = 'group2'
+                    artifactId = "name2"
+                    version = "version2"
+                    packaging = 'jar'
+                }
+            }
+        }
+    }
+    project.artifacts {
+         archives file: new File("path/to/yourPomName1.so"), name: "yourPomName1"
+         archives file: new File("path/to/yourPomName2.jar"), name: "yourPomName2"
+    }
+}
+```
+
+## 自定义classifier发布
+
+```
+project.artifacts {
+    archives file: new File("path/to/mainFile")
+    //必要时可发布classsifier文件，发布的文件需要group:name:version:classifier才能拉下来
+    archives classifier: 'armeabi', file: new File("path/to/classifierFile")
+    archives classifier: 'armeabi-v7a', file: new File("path/to/classifierFile")
+    archives classifier: 'arm64-v8a', file: new File("path/to/classifierFile")
+    archives classifier: 'x86', file: file: new File("path/to/classifierFile")
+    archives classifier: 'x86_64',  file: new File("path/to/classifierFile")
+    archives classifier: 'mips', file: new File("path/to/classifierFile")
+    archives classifier: 'mips64',file: new File("path/to/classifierFile")
+}
+```
+
+## native动态库依赖
+
+```
+apply plugin: 'android.native'
+//apply plugin: 'android.publish' //包含了android.native插件
+
+dependencies {
+	nativeCompile 'com.snappydb:snappydb-native:0.2.0:armeabi@so'
+	nativeCompile 'com.snappydb:snappydb-native:0.2.0:x86@so'
+	nativeCompile 'com.snappydb:snappydb-native:0.2.0:mips@so'
+	nativeCompile "com.snappydb:snappydb-native:0.2.0:armeabi-v7a@so"
+}
+```
+
+其中classifier可选，其值为 armeabi, armeabi-v7a, arm64-v8a, x86, x86_64, mips, mips64其中一个，不是这些值会抛异常。
+并且依赖中的ext @so是否需要携带取决于发布时默认的文件是否是so，如果存在classifier, 则@so为必选项，默认值为@jar，为了让其寻找so，需要手动指定为@so。
+不支持引入所有abi，只支持单个abi逐个引入
