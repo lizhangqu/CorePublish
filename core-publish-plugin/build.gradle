@@ -33,15 +33,12 @@ dependencies {
     compile gradleApi()
 
     def androidGradlePluginVersion = "2.3.3"
-    def androidMavenPluginVersion = "1.5"
 
     if (project.hasProperty('gradle3.0.0')) {
         androidGradlePluginVersion = "3.0.0"
-        androidMavenPluginVersion = "2.0"
     }
 
     provided "com.android.tools.build:gradle:${androidGradlePluginVersion}"
-    compile "com.github.dcendents:android-maven-gradle-plugin:${androidMavenPluginVersion}"
     compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     compile 'io.github.lizhangqu:core-release:1.0.0'
 }
@@ -97,3 +94,34 @@ release {
 //        }
 //    }
 //}
+
+
+//remove install task compile 'com.android.tools.build:gradle:$androidGradlePluginVersion'
+install {
+    repositories {
+        mavenInstaller {
+            pom {
+                whenConfigured { p ->
+                    p.dependencies = p.dependencies.findAll {
+                        dep -> (dep.groupId != "com.android.tools.build" && dep.artifactId != "gradle")
+                    }
+                }
+            }
+        }
+    }
+}
+//remove uploadArchives task compile 'com.android.tools.build:gradle:$androidGradlePluginVersion'
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom {
+                whenConfigured { p ->
+                    p.dependencies = p.dependencies.findAll {
+                        dep -> (dep.groupId != "com.android.tools.build" && dep.artifactId != "gradle")
+                    }
+                }
+            }
+        }
+    }
+}
+

@@ -7,7 +7,6 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.plugins.AndroidMavenPlugin
 import org.gradle.api.plugins.PluginContainer
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
@@ -23,8 +22,12 @@ import java.util.regex.Matcher
  * maven发布插件和bintray发布插件
  */
 class CorePublishPlugin implements Plugin<Project> {
+
+    public static final String LOG_PREFIX="[PublishPlugin]"
+
     private boolean enableJavadoc = false
     private boolean enablePomCoordinate = false
+
     private Properties properties = new Properties()
 
     @Override
@@ -73,14 +76,14 @@ class CorePublishPlugin implements Plugin<Project> {
             enableJavadoc = true
         }
 
-        project.logger.error("${project.path} enableJavadoc:${enableJavadoc}")
+        project.logger.info("${LOG_PREFIX} ${project.path} enableJavadoc:${enableJavadoc}")
 
         def enablePOM = getEnableCoordinate(project)
         if (enablePOM != null && String.valueOf(enablePOM).equalsIgnoreCase("true")) {
             enablePomCoordinate = true
         }
 
-        project.logger.error("${project.path} enablePomCoordinate:${enablePomCoordinate}")
+        project.logger.info("${LOG_PREFIX} ${project.path} enablePomCoordinate:${enablePomCoordinate}")
 
         if (enablePomCoordinate) {
             def pomGroupId = this.getPomGroupId(project)
@@ -122,62 +125,63 @@ class CorePublishPlugin implements Plugin<Project> {
     def applyThirdPlugin(Project project) {
         applyPluginIfNotApply(project, MavenPublishPlugin.class)
         applyPluginIfNotApply(project, BintrayPlugin.class)
-        applyPluginIfNotApply(project, AndroidMavenPlugin.class)
+        applyPluginIfNotApply(project, MavenPluginCompat.class)
         applyPluginIfNotApply(project, ReleasePlugin.class)
     }
 
 
     def configJavaDocAndJavaSource(Project project) {
-        // Android libraries
-        if (project.hasProperty("android")) {
+        project.afterEvaluate {
+            // Android libraries
+            if (project.hasProperty("android")) {
 
-            def androidJavadocs = project.task(type: Javadoc, 'androidJavadocs') {
-                source = project.android.sourceSets.main.java.srcDirs
-                classpath += project.configurations.compile
-                classpath += project.files("${project.android.getBootClasspath().join(File.pathSeparator)}")
-                failOnError false
-            }
+                def androidJavadocs = project.task(type: Javadoc, 'androidJavadocs') {
+                    source = project.android.sourceSets.main.java.srcDirs
+                    classpath += project.configurations.compile
+                    classpath += project.files("${project.android.getBootClasspath().join(File.pathSeparator)}")
+                    failOnError false
+                }
 
-            def androidJavaDocsJar = project.task(type: Jar, dependsOn: androidJavadocs, 'androidJavaDocsJar') {
-                classifier = 'javadoc'
-                from project.androidJavadocs.getDestinationDir()
-            }
+                def androidJavaDocsJar = project.task(type: Jar, dependsOn: androidJavadocs, 'androidJavaDocsJar') {
+                    classifier = 'javadoc'
+                    from project.androidJavadocs.getDestinationDir()
+                }
 
-            def androidSourcesJar = project.task(type: Jar, 'androidSourcesJar') {
-                classifier = 'sources'
-                from project.android.sourceSets.main.java.srcDirs
-            }
+                def androidSourcesJar = project.task(type: Jar, 'androidSourcesJar') {
+                    classifier = 'sources'
+                    from project.android.sourceSets.main.java.srcDirs
+                }
 
-            project.artifacts {
-                archives androidSourcesJar
-                if (enableJavadoc) {
-                    archives androidJavaDocsJar
+                project.artifacts {
+                    archives androidSourcesJar
+                    if (enableJavadoc) {
+                        archives androidJavaDocsJar
+                    }
+
+                }
+
+            } else {
+
+                def javaSourcesJar = project.task(type: Jar, dependsOn: project.classes, 'javaSourcesJar') {
+                    classifier = 'sources'
+                    from project.sourceSets.main.allSource
+                }
+
+                def javaDocJar = project.task(type: Jar, dependsOn: project.javadoc, 'javaDocJar') {
+                    classifier = 'javadoc'
+                    from project.javadoc.getDestinationDir()
+                }
+
+                project.artifacts {
+                    archives javaSourcesJar
+                    if (enableJavadoc) {
+                        archives javaDocJar
+                    }
                 }
 
             }
-
-        } else {
-
-            def javaSourcesJar = project.task(type: Jar, dependsOn: project.classes, 'javaSourcesJar') {
-                classifier = 'sources'
-                from project.sourceSets.main.allSource
-            }
-
-            def javaDocJar = project.task(type: Jar, dependsOn: project.javadoc, 'javaDocJar') {
-                classifier = 'javadoc'
-                from project.javadoc.getDestinationDir()
-            }
-
-            project.artifacts {
-                archives javaSourcesJar
-                if (enableJavadoc) {
-                    archives javaDocJar
-                }
-            }
-
         }
     }
-
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def configInstall(Project project) {
@@ -337,7 +341,7 @@ class CorePublishPlugin implements Plugin<Project> {
     def configPublishing(Project project) {
         project.publishing {
             repositories {
-                if (isReleaseBuild(project)) {
+                if (this.isReleaseBuild(project)) {
                     def releaseRepositoryUrl = this.getReleaseRepositoryUrl(project)
                     if (releaseRepositoryUrl) {
                         maven {
@@ -401,7 +405,6 @@ class CorePublishPlugin implements Plugin<Project> {
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def configBintray(Project project) {
-
         def bintrayUser = this.getBintrayUser(project)
         def bintrayKey = this.getBintrayKey(project)
         if (bintrayUser && bintrayKey) {
@@ -484,7 +487,7 @@ class CorePublishPlugin implements Plugin<Project> {
                 bintrayUploadTask.group = 'upload'
                 if (!bintrayUser || !bintrayKey) {
                     bintrayUploadTask.enabled = false
-                    project.logger.error("bintrayUpload is disabled because you don't provider bintrayUser and bintrayKey")
+                    project.logger.info("${LOG_PREFIX} ${project.path} bintrayUpload is disabled because you don't provider bintrayUser and bintrayKey")
                 }
             }
 
@@ -558,10 +561,10 @@ class CorePublishPlugin implements Plugin<Project> {
             List<String> taskNames = project.gradle.startParameter.taskNames
             if (taskNames != null && taskNames.size() > 0) {
                 String startTaskName = taskNames.get(0)
-                project.logger.error("${project.path} startTaskName:${startTaskName}")
+                project.logger.info("${LOG_PREFIX} ${project.path} startTaskName:${startTaskName}")
                 NameMatcher matcher = new NameMatcher()
                 String actualName = matcher.find(startTaskName, project.tasks.asMap.keySet())
-                project.logger.error("${project.path} actualName:${actualName}")
+                project.logger.info("${LOG_PREFIX} ${project.path} actualName:${actualName}")
 
                 //isBintrayUpload逻辑比较变态，不是特别熟悉gradle的话勿动
                 if (isBintrayUpload == null) {
@@ -600,7 +603,7 @@ class CorePublishPlugin implements Plugin<Project> {
                 }
             }
 
-            project.logger.error("${project.path} isBintrayUpload:${isBintrayUpload}")
+            project.logger.info("${LOG_PREFIX} ${project.path} isBintrayUpload:${isBintrayUpload}")
 
             if (isBintrayUpload != null && isBintrayUpload) {
                 project.afterReleaseBuild.dependsOn project.bintrayUpload
@@ -655,7 +658,7 @@ class CorePublishPlugin implements Plugin<Project> {
 
     @SuppressWarnings("GroovyUnusedDeclaration")
     def readPropertyFromLocalPropertiesOrThrow(Project project, String key, String defaultValue, boolean throwIfNull) {
-        def property = properties != null ? properties.getProperty(key, defaultValue) : defaultValue
+        def property = (properties != null && properties.contains(key)) ? properties.getProperty(key, defaultValue) : defaultValue
         if (property == null && throwIfNull) {
             throw new GradleException("you must config ${key} in properties. Like config project.ext.${key} , add ${key} in gradle.properties or add ${key} in local.properties which locates on root project dir")
         }
@@ -687,15 +690,15 @@ class CorePublishPlugin implements Plugin<Project> {
     }
 
     def getPomGroupId(Project project) {
-        return project.hasProperty('PROJECT_POM_GROUP_ID') ? project.ext.PROJECT_POM_GROUP_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_GROUP_ID', null)
+        return project.hasProperty('PROJECT_POM_GROUP_ID') ? project.ext.PROJECT_POM_GROUP_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_GROUP_ID', project.group.toString())
     }
 
     def getPomArtifactId(Project project) {
-        return project.hasProperty('PROJECT_POM_ARTIFACT_ID') ? project.ext.PROJECT_POM_ARTIFACT_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_ARTIFACT_ID', null)
+        return project.hasProperty('PROJECT_POM_ARTIFACT_ID') ? project.ext.PROJECT_POM_ARTIFACT_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_ARTIFACT_ID', project.name.toString())
     }
 
     def getPomVersion(Project project) {
-        return project.hasProperty('PROJECT_POM_VERSION') ? project.ext.PROJECT_POM_VERSION : readPropertyFromLocalProperties(project, 'PROJECT_POM_VERSION', null)
+        return project.hasProperty('PROJECT_POM_VERSION') ? project.ext.PROJECT_POM_VERSION : readPropertyFromLocalProperties(project, 'PROJECT_POM_VERSION', project.version.toString())
     }
 
     def getPomWebsiteUrl(Project project) {
