@@ -58,3 +58,11 @@
 ---------------
  
   - 修复发布依赖task依赖关系
+  
+1.0.12
+---------------
+ 
+  - 添加MavenPluginCompat，不使用AndroidMavenPlugin，支持gradle 2.10到gradle4.4
+  - 添加nativeCompile插件
+  - 不强制要求设置group,name,version
+  - 修复javadoc，javasource配置执行的时机
