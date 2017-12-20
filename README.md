@@ -229,6 +229,8 @@ publishing {
 }
 ```
 
+除此之外，也可以通过添加 project.artifacts，然后使用uploadSnapshot或者uploadRelease发布
+
 ## 自定义多pom发布
 
 ```
