@@ -407,6 +407,10 @@ class CorePublishPlugin implements Plugin<Project> {
     def configBintray(Project project) {
         def bintrayUser = this.getBintrayUser(project)
         def bintrayKey = this.getBintrayKey(project)
+
+        project.logger.info("${LOG_PREFIX} bintrayUser ${bintrayUser}")
+        project.logger.info("${LOG_PREFIX} bintrayKey ${bintrayKey}")
+
         if (bintrayUser && bintrayKey) {
             project.bintray {
                 user = bintrayUser
@@ -458,8 +462,8 @@ class CorePublishPlugin implements Plugin<Project> {
             def bintrayUser = this.getBintrayUser(project)
             def bintrayKey = this.getBintrayKey(project)
 
-            project.logger.error("${LOG_PREFIX} bintrayUser ${bintrayUser}")
-            project.logger.error("${LOG_PREFIX} bintrayKey ${bintrayKey}")
+            project.logger.info("${LOG_PREFIX} bintrayUser ${bintrayUser}")
+            project.logger.info("${LOG_PREFIX} bintrayKey ${bintrayKey}")
 
             def installTask = project.tasks.findByName("install")
             def uploadArchivesTask = project.tasks.findByName("uploadArchives")
@@ -664,7 +668,7 @@ class CorePublishPlugin implements Plugin<Project> {
 
     @SuppressWarnings("GroovyUnusedDeclaration")
     def readPropertyFromLocalPropertiesOrThrow(Project project, String key, String defaultValue, boolean throwIfNull) {
-        def property = (properties != null && properties.contains(key)) ? properties.getProperty(key, defaultValue) : defaultValue
+        def property = (properties != null && properties.containsKey(key)) ? properties.getProperty(key, defaultValue) : defaultValue
         if (property == null && throwIfNull) {
             throw new GradleException("you must config ${key} in properties. Like config project.ext.${key} , add ${key} in gradle.properties or add ${key} in local.properties which locates on root project dir")
         }
