@@ -23,7 +23,7 @@ import java.util.regex.Matcher
  */
 class CorePublishPlugin implements Plugin<Project> {
 
-    public static final String LOG_PREFIX="[PublishPlugin]"
+    public static final String LOG_PREFIX = "[PublishPlugin]"
 
     private boolean enableJavadoc = false
     private boolean enablePomCoordinate = false
@@ -487,7 +487,7 @@ class CorePublishPlugin implements Plugin<Project> {
                 }
                 //reset bintrayUpload task group form other to upload
                 bintrayUploadTask.group = 'upload'
-                if (!bintrayUser || !bintrayKey) {
+                if (bintrayUser == null || bintrayKey == null) {
                     bintrayUploadTask.enabled = false
                     project.logger.info("${LOG_PREFIX} ${project.path} bintrayUpload is disabled because you don't provider bintrayUser and bintrayKey")
                 }
