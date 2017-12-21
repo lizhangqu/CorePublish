@@ -495,7 +495,11 @@ class CorePublishPlugin implements Plugin<Project> {
             //must use this way, if direct find the task we can't get the task
             project.tasks.all { Task task ->
                 if (task.name.equalsIgnoreCase('generatePomFileForMavenPublication')) {
-                    task.dependsOn project.tasks.getByName('assemble')
+                    if (project.hasProperty("android")) {
+                        task.dependsOn project.tasks.getByName('assembleRelease')
+                    } else {
+                        task.dependsOn project.tasks.getByName('assemble')
+                    }
                 }
                 if (task.name.equalsIgnoreCase('install')) {
                     if (project.hasProperty("android")) {
