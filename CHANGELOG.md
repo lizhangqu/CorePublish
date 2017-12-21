@@ -66,3 +66,8 @@
   - 添加nativeCompile插件
   - 不强制要求设置group,name,version
   - 修复javadoc，javasource配置执行的时机
+  
+1.2.0
+---------------
+ 
+  - 修复bintray发布bug
