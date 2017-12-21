@@ -17,7 +17,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.0.11'
+        classpath 'io.github.lizhangqu:core-publish:1.0.13'
     }
 }
 ```
@@ -289,7 +289,6 @@ project.artifacts {
 
 ```
 apply plugin: 'core.native'
-//apply plugin: 'core.publish' //包含了core.native插件
 
 dependencies {
 	nativeCompile 'com.snappydb:snappydb-native:0.2.0:armeabi@so'
