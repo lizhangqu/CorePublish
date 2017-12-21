@@ -458,6 +458,8 @@ class CorePublishPlugin implements Plugin<Project> {
             def bintrayUser = this.getBintrayUser(project)
             def bintrayKey = this.getBintrayKey(project)
 
+            project.logger.error("${LOG_PREFIX} bintrayUser ${bintrayUser}")
+            project.logger.error("${LOG_PREFIX} bintrayKey ${bintrayKey}")
 
             def installTask = project.tasks.findByName("install")
             def uploadArchivesTask = project.tasks.findByName("uploadArchives")
