@@ -71,3 +71,9 @@
 ---------------
  
   - 修复bintray发布bug
+
+  
+1.2.1
+---------------
+ 
+  - 修复native compile armeabi-v7a和arm64-v8a目录错误的bug
