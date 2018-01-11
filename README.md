@@ -17,7 +17,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.2.1'
+        classpath 'io.github.lizhangqu:core-publish:1.2.2'
     }
 }
 ```
@@ -49,8 +49,13 @@ PROJECT_POM_ARTIFACT_ID=core-publish
 PROJECT_POM_VERSION=1.0.0-SNAPSHOT
 ```
 
-如果使用android gradle plugin 3.0 implementation 依赖，请使用gradle3.0.0对应的版本
+或者
 
+```
+group=io.github.lizhangqu
+archivesBaseName=core-publish
+version=1.0.0-SNAPSHOT
+```
 
 ## Maven发布配置
 
@@ -76,7 +81,7 @@ BINTRAY_APIKEY =
 
 ## 支持属性列表
 
-其中发布到maven时PROJECT_POM_GROUP_ID，PROJECT_POM_ARTIFACT_ID，PROJECT_POM_VERSION是必选项，如果未设置，则使用默认值rootProject.name:project.name:unspecific。其他为可选项。
+其中发布到maven时PROJECT_POM_GROUP_ID，PROJECT_POM_ARTIFACT_ID，PROJECT_POM_VERSION是必选项(或者配置group,archivesBaseName,version进行代替)，如果未设置，则使用默认值rootProject.name:project.name:unspecific。其他为可选项。
 对于发布到Bintray时，其他配置基本都是必选项，建议根据控制台错误信息进行配置。
 
 ### gradle.properties
@@ -85,6 +90,7 @@ BINTRAY_APIKEY =
 PROJECT_POM_GROUP_ID=
 PROJECT_POM_ARTIFACT_ID=
 PROJECT_POM_VERSION=
+//以上三个可使用group,archivesBaseName,version替换
 POM_DESCRIPTION=
 POM_LICENSE=
 POM_LICENSE_URL=
@@ -105,6 +111,7 @@ project.ext{
 	PROJECT_POM_GROUP_ID=
 	PROJECT_POM_ARTIFACT_ID=
 	PROJECT_POM_VERSION=
+	//以上三个可使用group,archivesBaseName,version替换
 	POM_DESCRIPTION=
 	POM_LICENSE=
 	POM_LICENSE_URL=
@@ -163,11 +170,11 @@ release {
     preTagCommitMessage = '[Gradle Release Plugin] - pre tag commit: ' // 如果存在snapshot版本，去snapshot字样时使用的message
     tagCommitMessage = '[Gradle Release Plugin] - creating tag: ' // 创建tag的message
     newVersionCommitMessage = '[Gradle Release Plugin] - new version commit: ' // 创建新版本的message
-    tagTemplate = '${version}' // tag的模板，内部使用模板引擎渲染，支持${name}和${version}
+    tagTemplate = '$name/${version}' // tag的模板，内部使用模板引擎渲染，支持${name}，${version}，${group}，${archivesBaseName}，必须为单引号，如果存在archivesBaseName，此值默认是$archivesBaseName/$version，否则默认是$name/$version
     versionPropertyFile = 'gradle.properties' // 版本号所在文件
     versionProperties = [] //需要同步更新的版本号属性
     versionKey = null // 默认使用version作为key，当需要自定义时，设置此值
-    buildTasks = ['build'] // 构建的task，建议设置为 assembleRelease
+    buildTasks = ['build'] // 构建的task，建议设置为 assembleRelease，如果是android项目，此值默认为assembleRelease，否则默认是build
     versionPatterns = [
         /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
     ] //版本匹配正则
