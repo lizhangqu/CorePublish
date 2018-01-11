@@ -77,3 +77,16 @@
 ---------------
  
   - 修复native compile armeabi-v7a和arm64-v8a目录错误的bug
+  
+  
+1.2.2
+---------------
+ 
+  - 支持tag模板group和archivesBaseName
+  - 支持使用archivesBaseName代替name
+  - 修改android默认buildTasks为assembleRelease
+  
+  
+1.2.4
+---------------
+  - 修复release插件编译错误
