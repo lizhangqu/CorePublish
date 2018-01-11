@@ -40,7 +40,7 @@ dependencies {
 
     provided "com.android.tools.build:gradle:${androidGradlePluginVersion}"
     compile 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
-    compile 'io.github.lizhangqu:core-release:1.0.0'
+    compile 'io.github.lizhangqu:core-release:1.0.1'
 }
 
 buildscript {
@@ -69,14 +69,11 @@ ext {
     SNAPSHOT_REPOSITORY_USERNAME = ""
     SNAPSHOT_REPOSITORY_PASSWORD = ""
 }
+
 apply plugin: 'core.publish'
 
-def template = '${name}/${version}'
-if (project.hasProperty('gradle3.0.0')) {
-    template = '${name}/gradle3.0.0/${version}'
-}
 release {
-    tagTemplate = "${template}"
+    tagTemplate = "${name}/${version}"
     versionKey = 'POM_VERSION'
 }
 
