@@ -526,11 +526,19 @@ class CorePublishPlugin implements Plugin<Project> {
             preTagCommitMessage = '[Gradle Release Plugin] - pre tag commit: '
             tagCommitMessage = '[Gradle Release Plugin] - creating tag: '
             newVersionCommitMessage = '[Gradle Release Plugin] - new version commit: '
-            tagTemplate = '${name}/${version}'
+            if (project.hasProperty("archivesBaseName")) {
+                tagTemplate = '${archivesBaseName}/${version}'
+            } else {
+                tagTemplate = '${name}/${version}'
+            }
             versionPropertyFile = 'gradle.properties'
             versionProperties = []
             versionKey = null
-            buildTasks = ['build']
+            if (project.hasProperty("android")) {
+                buildTasks = ['assembleRelease']
+            } else {
+                buildTasks = ['build']
+            }
             versionPatterns = [
                     /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
             ]
