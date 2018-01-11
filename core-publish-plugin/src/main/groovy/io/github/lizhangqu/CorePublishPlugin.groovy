@@ -15,7 +15,6 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.jvm.tasks.Jar
 import org.gradle.util.NameMatcher
 
-import java.util.concurrent.TimeUnit
 import java.util.regex.Matcher
 
 /**
@@ -99,8 +98,8 @@ class CorePublishPlugin implements Plugin<Project> {
     @SuppressWarnings("GrMethodMayBeStatic")
     def configResolutionStrategy(Project project) {
         project.configurations.all {
-            it.resolutionStrategy.cacheDynamicVersionsFor(5, TimeUnit.MINUTES)
-            it.resolutionStrategy.cacheChangingModulesFor(0, TimeUnit.SECONDS)
+            it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
+            it.resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
         }
     }
 
