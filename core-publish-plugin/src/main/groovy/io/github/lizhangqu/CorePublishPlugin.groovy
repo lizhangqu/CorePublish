@@ -705,7 +705,14 @@ class CorePublishPlugin implements Plugin<Project> {
     }
 
     def getPomArtifactId(Project project) {
-        return project.hasProperty('PROJECT_POM_ARTIFACT_ID') ? project.ext.PROJECT_POM_ARTIFACT_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_ARTIFACT_ID', project.name.toString())
+        return project.hasProperty('PROJECT_POM_ARTIFACT_ID') ? project.ext.PROJECT_POM_ARTIFACT_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_ARTIFACT_ID', getDefaultPomArtifactId(project))
+    }
+
+    def getDefaultPomArtifactId(Project project) {
+        if (project.hasProperty('archivesBaseName')) {
+            return project.archivesBaseName.toString()
+        }
+        return project.name.toString()
     }
 
     def getPomVersion(Project project) {
