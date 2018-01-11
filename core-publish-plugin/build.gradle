@@ -49,7 +49,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath('io.github.lizhangqu:core-publish:1.2.1')
+        classpath('io.github.lizhangqu:core-publish:1.2.2')
     }
     configurations.all {
         it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
@@ -58,9 +58,6 @@ buildscript {
 }
 
 ext {
-    PROJECT_POM_GROUP_ID = "io.github.lizhangqu"
-    PROJECT_POM_ARTIFACT_ID = "core-publish"
-    PROJECT_POM_VERSION = "${POM_VERSION}"
 
     RELEASE_REPOSITORY_URL = "file://${project.rootProject.file('repo/release')}"
     SNAPSHOT_REPOSITORY_URL = "file://${project.rootProject.file('repo/snapshot')}"
@@ -72,10 +69,6 @@ ext {
 
 apply plugin: 'core.publish'
 
-release {
-    tagTemplate = "${name}/${version}"
-    versionKey = 'POM_VERSION'
-}
 
 //publishing {
 //    publications {
