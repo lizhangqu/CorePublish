@@ -406,10 +406,6 @@ class CorePublishPlugin implements Plugin<Project> {
     def configBintray(Project project) {
         def bintrayUser = this.getBintrayUser(project)
         def bintrayKey = this.getBintrayKey(project)
-
-        project.logger.info("${LOG_PREFIX} bintrayUser ${bintrayUser}")
-        project.logger.info("${LOG_PREFIX} bintrayKey ${bintrayKey}")
-
         if (bintrayUser && bintrayKey) {
             project.bintray {
                 user = bintrayUser
@@ -461,8 +457,6 @@ class CorePublishPlugin implements Plugin<Project> {
             def bintrayUser = this.getBintrayUser(project)
             def bintrayKey = this.getBintrayKey(project)
 
-            project.logger.info("${LOG_PREFIX} bintrayUser ${bintrayUser}")
-            project.logger.info("${LOG_PREFIX} bintrayKey ${bintrayKey}")
 
             def installTask = project.tasks.findByName("install")
             def uploadArchivesTask = project.tasks.findByName("uploadArchives")
