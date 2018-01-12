@@ -513,8 +513,6 @@ class CorePublishPlugin implements Plugin<Project> {
 
     @SuppressWarnings("GroovyAssignabilityCheck")
     def configReleasePlugin(Project project) {
-        //auto version
-        project.ext.'release.useAutomaticVersion' = true
         project.release {
             failOnCommitNeeded = true
             failOnPublishNeeded = true
