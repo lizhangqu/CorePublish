@@ -308,3 +308,99 @@ dependencies {
 其中classifier可选，其值为 armeabi, armeabi-v7a, arm64-v8a, x86, x86_64, mips, mips64其中一个，不是这些值会抛异常。
 并且依赖中的ext @so是否需要携带取决于发布时默认的文件是否是so，如果存在classifier, 则@so为必选项，默认值为@jar，为了让其寻找so，需要手动指定为@so。
 不支持引入所有abi，只支持单个abi逐个引入
+
+
+## 多module发布
+
+C依赖B，B依赖A，且业务最终只需要依赖C，传递依赖B和A
+
+根目录下build.gradle中配置发布任务
+```
+task uploadSnapshot(type: MultiProjectUpload) {
+    uploadProjects = ['A','B','C'] //在前面的会先被发布，且uploadProjects必须配置在releasePublish前面，值为module名
+    releasePublish = false  //snapshot构建
+}
+task uploadRelease(type: MultiProjectUpload) {
+    uploadProjects = ['A','B','C'] //在前面的会先被发布，且uploadProjects必须配置在releasePublish前面，值为module名
+    releasePublish = true //release构建
+}
+```
+
+注意：版本号的key命名规范必须为POM_module名.replaceAll('-','_').toUpperCase()_VERSION，版本号所在文件必须为根目录下的gradle.properties
+
+修改A的发布脚本为
+
+```
+ext {
+    PROJECT_POM_GROUP_ID = "io.github.lizhangqu"
+    PROJECT_POM_ARTIFACT_ID = "A"
+    PROJECT_POM_VERSION = "${POM_A_VERSION}"
+}
+apply plugin: 'android.publish'
+release {
+    versionPropertyFile = "${project.rootProject.projectDir}/gradle.properties"
+    versionKey = "POM_A_VERSION"
+}
+```
+
+修改B的发布脚本为
+```
+dependencies {
+    compile(":A")
+}
+ext {
+    PROJECT_POM_GROUP_ID = "io.github.lizhangqu"
+    PROJECT_POM_ARTIFACT_ID = "B"
+    PROJECT_POM_VERSION = "${POM_B_VERSION}"
+}
+apply plugin: 'android.publish'
+release {
+    versionPropertyFile = "${project.rootProject.projectDir}/gradle.properties"
+    versionKey = "POM_B_VERSION"
+}
+```
+
+修改C的发布脚本为
+
+```
+dependencies {
+    compile(":B")
+}
+ext {
+    PROJECT_POM_GROUP_ID = "io.github.lizhangqu"
+    PROJECT_POM_ARTIFACT_ID = "C"
+    PROJECT_POM_VERSION = "${POM_C_VERSION}"
+}
+apply plugin: 'android.publish'
+release {
+    versionPropertyFile = "${project.rootProject.projectDir}/gradle.properties"
+    versionKey = "POM_C_VERSION"
+}
+```
+
+在根目录下的gradle.properties中配置开启坐标覆盖设置
+
+```
+POM_ENABLE_COORDINATE = true
+```
+
+在根目录下的gradle.properties中配置各个模块的版本号
+
+```
+POM_A_VERSION=1.0.0-SNAPSHOT
+POM_B_VERSION=1.0.0-SNAPSHOT
+POM_C_VERSION=1.0.0-SNAPSHOT
+```
+
+发布时需要注意的是所有模块必须同步发布，即使一个模块一行代码没改动，另一个模块发布的时候，没改动的模块也要随同发布，类似android support包。
+
+jenkins参数化构建传入-Pversion=$version，所有module此时版本号都会取这个version值
+
+发布任务必须带:前缀
+
+```
+./gradlew :uploadSnapshot
+./gradlew :uploadRelease
+```
+
+特别值得注意的是多module发布的task，必须带:前缀，如snapshot必须使用:uploadSnapshot，而不是uploadSnapshot
