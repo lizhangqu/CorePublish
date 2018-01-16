@@ -58,7 +58,6 @@ buildscript {
 }
 
 ext {
-
     RELEASE_REPOSITORY_URL = "file://${project.rootProject.file('repo/release')}"
     SNAPSHOT_REPOSITORY_URL = "file://${project.rootProject.file('repo/snapshot')}"
     RELEASE_REPOSITORY_USERNAME = ""
@@ -67,8 +66,10 @@ ext {
     SNAPSHOT_REPOSITORY_PASSWORD = ""
 }
 
-apply plugin: 'core.publish'
+group = "io.github.lizhangqu"
+archivesBaseName = "core-publish"
 
+apply plugin: 'core.publish'
 
 //publishing {
 //    publications {
@@ -77,7 +78,6 @@ apply plugin: 'core.publish'
 //        }
 //    }
 //}
-
 
 //remove install task compile 'com.android.tools.build:gradle:$androidGradlePluginVersion'
 install {
