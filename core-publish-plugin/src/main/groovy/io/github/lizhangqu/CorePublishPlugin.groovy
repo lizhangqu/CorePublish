@@ -559,7 +559,7 @@ class CorePublishPlugin implements Plugin<Project> {
                     /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
             ]
             git {
-                requireBranch = 'master'
+                requireBranch = '(master|master-dev|release)'
                 pushToRemote = 'origin'
                 pushToBranchPrefix = ''
                 commitVersionFileOnly = false
