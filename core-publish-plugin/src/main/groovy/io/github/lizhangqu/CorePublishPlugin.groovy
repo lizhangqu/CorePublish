@@ -573,16 +573,15 @@ class CorePublishPlugin implements Plugin<Project> {
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def configTask(Project project) {
         def releaseTask = project.tasks.findByName('release')
-        project.task(dependsOn: releaseTask, 'uploadBintray') {
+        def uploadBintray = project.task(dependsOn: releaseTask, 'uploadBintray') {
             setGroup('upload')
         }
-        project.task(dependsOn: releaseTask, 'uploadRelease') {
+        def uploadRelease = project.task(dependsOn: releaseTask, 'uploadRelease') {
             setGroup('upload')
         }
         def uploadSnapshot = project.task(dependsOn: project.uploadArchives, 'uploadSnapshot') {
             setGroup('upload')
         }
-
 
         project.afterEvaluate {
             List<String> taskNames = project.gradle.startParameter.taskNames
