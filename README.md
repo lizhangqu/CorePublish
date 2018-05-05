@@ -401,3 +401,14 @@ jenkins参数化构建传入-Pversion=$version，所有module此时版本号都�
 ```
 
 特别值得注意的是多module发布的task，必须带:前缀，如snapshot必须使用:uploadSnapshot，而不是uploadSnapshot
+
+## com.android.application中使用providedAar
+
+```
+apply plugin: 'core.providedAar'
+
+dependencies {
+    providedAar 'com.android.support:appcompat-v7:26.1.0'
+    providedAar project(':lib1')
+}
+```
