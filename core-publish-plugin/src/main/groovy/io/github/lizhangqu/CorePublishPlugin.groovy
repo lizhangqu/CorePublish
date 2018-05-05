@@ -66,6 +66,9 @@ class CorePublishPlugin implements Plugin<Project> {
         configReleasePlugin(project)
         //uploadRelease uploadSnapshot
         configTask(project)
+        //add prefix task
+        addPrefixTask(project)
+
     }
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
@@ -632,6 +635,10 @@ class CorePublishPlugin implements Plugin<Project> {
                 project.uploadArchives.mustRunAfter checkSnapshotVersion
             }
         }
+    }
+
+    def addPrefixTask(Project project) {
+        applyPluginIfNotApply(project, PrefixTaskPlugin.class)
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
