@@ -4,7 +4,7 @@
 
 ```
 classpath "com.github.dcendents:android-maven-gradle-plugin:1.5"
-classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'
 ```
 
 以及移除原先的发布脚本
@@ -17,7 +17,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.2.7'
+        classpath 'io.github.lizhangqu:core-publish:1.2.9'
     }
 }
 ```
@@ -35,26 +35,23 @@ ext {
     SNAPSHOT_REPOSITORY_PASSWORD = ""
 }
 apply plugin: 'core.publish'
-
-release {
-    versionKey = 'PROJECT_POM_VERSION'
-}
 ```
 
 gradle.properties中配置
 
-```
-PROJECT_POM_GROUP_ID=io.github.lizhangqu
-PROJECT_POM_ARTIFACT_ID=core-publish
-PROJECT_POM_VERSION=1.0.0-SNAPSHOT
-```
-
-或者
 
 ```
 group=io.github.lizhangqu
 archivesBaseName=core-publish
 version=1.0.0-SNAPSHOT
+```
+
+或者
+
+```
+PROJECT_POM_GROUP_ID=io.github.lizhangqu
+PROJECT_POM_ARTIFACT_ID=core-publish
+PROJECT_POM_VERSION=1.0.0-SNAPSHOT
 ```
 
 ## Maven发布配置
