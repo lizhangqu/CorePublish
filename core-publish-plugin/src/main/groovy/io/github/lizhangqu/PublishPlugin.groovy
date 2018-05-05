@@ -595,11 +595,11 @@ class PublishPlugin implements Plugin<Project> {
                 //isBintrayUpload逻辑比较变态，不是特别熟悉gradle的话勿动
                 if (isBintrayUpload == null) {
                     if (actualName != null) {
-                        if (actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload")) {
+                        if (actualName.contains("uploadBintray") || actualName.contains("bintrayUpload")) {
                             isBintrayUpload = true
                         }
                     } else {
-                        if (startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload")) {
+                        if (startTaskName != null && startTaskName.contains("uploadBintray") || startTaskName.contains("bintrayUpload")) {
                             isBintrayUpload = true
                         }
                     }
@@ -612,15 +612,15 @@ class PublishPlugin implements Plugin<Project> {
                         //moduleName:moduleName:beforeReleaseBuild
                     } else {
                         if (actualName != null) {
-                            if (!(actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload"))) {
+                            if (!(actualName.contains("uploadBintray") || actualName.contains("bintrayUpload"))) {
                                 isBintrayUpload = false
-                            } else if (actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload")) {
+                            } else if (actualName.contains("uploadBintray") || actualName.contains("bintrayUpload")) {
                                 isBintrayUpload = true
                             }
                         } else {
-                            if (!(startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload"))) {
+                            if (!(startTaskName != null && startTaskName.contains("uploadBintray") || startTaskName.contains("bintrayUpload"))) {
                                 isBintrayUpload = false
-                            } else if (startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload")) {
+                            } else if (startTaskName != null && startTaskName.contains("uploadBintray") || startTaskName.contains("bintrayUpload")) {
                                 isBintrayUpload = true
                             }
                         }
