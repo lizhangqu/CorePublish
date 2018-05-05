@@ -20,7 +20,7 @@ import java.util.regex.Matcher
 /**
  * maven发布插件和bintray发布插件
  */
-class CorePublishPlugin implements Plugin<Project> {
+class PublishPlugin implements Plugin<Project> {
 
     public static final String LOG_PREFIX = "[PublishPlugin]"
 
