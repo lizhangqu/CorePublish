@@ -40,6 +40,7 @@ class CorePublishPlugin implements Plugin<Project> {
         }
         //resolutionStrategy
         configResolutionStrategy(project)
+        project.getExtensions().create("pom", PublishPluginExtension.class, project)
         //read local properties
         loadLocalProperties(project)
         //loadSwitchValue
@@ -246,6 +247,14 @@ class CorePublishPlugin implements Plugin<Project> {
                             }
                         }
                     }
+                    pom {
+                        whenConfigured { p ->
+                            p.dependencies = p.dependencies.findAll { dependency ->
+                                PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
+                                return !publishPluginExtension.shouldExcludeDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -334,6 +343,12 @@ class CorePublishPlugin implements Plugin<Project> {
                         }
                     }
 
+                }
+                mavenDeployer.pom.whenConfigured { p ->
+                    p.dependencies = p.dependencies.findAll { dependency ->
+                        PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
+                        return !publishPluginExtension.shouldExcludeDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                    }
                 }
             }
         }
