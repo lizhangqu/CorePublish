@@ -39,11 +39,13 @@ dependencies {
     }
 
     provided "com.android.tools.build:gradle:${androidGradlePluginVersion}"
-    compile ('com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'){
+    compile('com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0') {
         //使用maven-core，否则和aether有冲突
         exclude module: "maven-ant-tasks"
     }
-    compile 'org.apache.maven:maven-core:3.5.3'
+    compile('org.apache.maven:maven-core:3.5.3') {
+        exclude module: "guava"
+    }
     compile 'io.github.lizhangqu:core-release:1.0.5'
 }
 
