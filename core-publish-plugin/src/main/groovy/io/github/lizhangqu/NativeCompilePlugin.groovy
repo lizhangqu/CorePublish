@@ -1,7 +1,5 @@
 package io.github.lizhangqu
 
-import org.gradle.api.GradleException
-import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
@@ -9,7 +7,7 @@ import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileCollection
 import org.gradle.util.GFileUtils
 
-class NativeCompilePlugin implements Plugin<Project> {
+class NativeCompilePlugin extends BasePropertiesPlugin {
     //默认值
     static final String DEFAULT_CLASSIFIER = "armeabi"
     //支持的abi列表
@@ -17,27 +15,14 @@ class NativeCompilePlugin implements Plugin<Project> {
     final List<String> ABI = Arrays.asList("armeabi", "armeabi-v7a", "arm64-v8a", "x86", "x86_64", "mips", "mips64")
     String defaultClassifier = DEFAULT_CLASSIFIER
 
-    private Properties properties = new Properties()
-
-    def loadLocalProperties(Project project) {
-        try {
-            File localFile = project.rootProject.file('local.properties')
-            if (localFile.exists()) {
-                properties.load(localFile.newDataInputStream())
-            }
-        } catch (Exception e) {
-            println("load local properties failed msg:${e.message}")
-        }
-    }
 
     @Override
     void apply(Project project) {
+        super.apply(project)
         def extension = project.getExtensions().findByName('android')
         if (extension == null) {
             return
         }
-        //read local properties
-        loadLocalProperties(project)
         defaultClassifier = getClassifier(project)
         def mainSourceSet = extension.getSourceSets().getByName(extension.getDefaultConfig().getName())
         Set<File> jniLibsDirs = mainSourceSet.getJniLibs().getSrcDirs()
@@ -48,17 +33,9 @@ class NativeCompilePlugin implements Plugin<Project> {
         createConfiguration(project, 'nativeCompile', jniLibsDir)
     }
 
-    @SuppressWarnings("GroovyUnusedDeclaration")
-    def readPropertyFromLocalPropertiesOrThrow(Project project, String key, String defaultValue, boolean throwIfNull) {
-        def property = properties != null ? properties.getProperty(key, defaultValue) : defaultValue
-        if (property == null && throwIfNull) {
-            throw new GradleException("you must config ${key} in properties. Like config project.ext.${key} , add ${key} in gradle.properties or add ${key} in local.properties which locates on root project dir")
-        }
-        return property
-    }
 
     def getClassifier(Project project) {
-        return project.hasProperty('native_compile_classifier') ? project.ext.native_compile_classifier : readPropertyFromLocalPropertiesOrThrow(project, 'native_compile_classifier', DEFAULT_CLASSIFIER, false)
+        return readPropertyFromProject(project, "native_compile_classifier", DEFAULT_CLASSIFIER, false)
     }
 
     @SuppressWarnings("GrMethodMayBeStatic")
