@@ -17,12 +17,12 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'io.github.lizhangqu:core-publish:1.3.0'
+        classpath 'io.github.lizhangqu:core-publish:1.4.0'
     }
 }
 ```
 
-最低支持gradle 2.10，低于gradle 2.10时会报错，最高支持到gradle 4.4
+最低支持gradle 2.10，低于gradle 2.10时会报错，最高支持到gradle 4.8
 
 配置相关属性并应用插件
 ```
@@ -34,7 +34,9 @@ ext {
     SNAPSHOT_REPOSITORY_USERNAME = ""
     SNAPSHOT_REPOSITORY_PASSWORD = ""
 }
-apply plugin: 'core.publish'
+apply plugin: 'android.publish'
+
+//apply plugin: 'java.publish'
 ```
 
 gradle.properties中配置
@@ -292,7 +294,7 @@ project.artifacts {
 ## native动态库依赖
 
 ```
-apply plugin: 'core.native'
+apply plugin: 'android.native'
 
 dependencies {
 	nativeCompile 'com.snappydb:snappydb-native:0.2.0:armeabi@so'
@@ -405,7 +407,7 @@ jenkins参数化构建传入-Pversion=$version，所有module此时版本号都�
 ## com.android.application中使用providedAar
 
 ```
-apply plugin: 'core.providedAar'
+apply plugin: 'android.providedAar'
 
 dependencies {
     providedAar 'com.android.support:appcompat-v7:26.1.0'
