@@ -84,7 +84,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.github.lizhangqu:core-publish:1.3.3')
+        classpath('io.github.lizhangqu:core-publish:1.3.7')
     }
     configurations.all {
         it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
