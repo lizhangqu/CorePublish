@@ -101,9 +101,6 @@ ext {
     SNAPSHOT_REPOSITORY_PASSWORD = ""
 }
 
-group = "io.github.lizhangqu"
-archivesBaseName = "core-publish"
-
 
 apply plugin: 'android.publish'
 //因为version在动态变化，所以这里指定versionKey
