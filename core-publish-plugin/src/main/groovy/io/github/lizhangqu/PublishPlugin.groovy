@@ -1,50 +1,41 @@
 package io.github.lizhangqu
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.jfrog.bintray.gradle.BintrayPlugin
-import net.researchgate.release.ReleasePlugin
-import org.gradle.api.GradleException
-import org.gradle.api.JavaVersion
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.api.Task
+import org.gradle.api.*
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.plugins.PluginContainer
+import org.gradle.api.plugins.ProjectReportsPlugin
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.api.reporting.dependencies.HtmlDependencyReportTask
+import org.gradle.api.reporting.dependencies.internal.HtmlDependencyReporter
 import org.gradle.api.tasks.bundling.Jar
-import org.gradle.util.NameMatcher
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.diagnostics.DependencyReportTask
+import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.util.GFileUtils
+import io.github.lizhangqu.release.ReleasePlugin
 
 import java.util.regex.Matcher
 
 /**
  * maven发布插件和bintray发布插件
  */
-class PublishPlugin implements Plugin<Project> {
+class PublishPlugin extends BasePropertiesPlugin {
 
     public static final String LOG_PREFIX = "[PublishPlugin]"
 
-    private boolean enableJavadoc = false
-    private boolean enablePomCoordinate = false
-
-    private Properties properties = new Properties()
-
     @Override
     void apply(Project project) {
-        def taskNames = project.gradle.startParameter.getTaskNames()
-        if (taskNames != null && taskNames.contains("uploadArchives")) {
-            throw new GradleException("please use uploadSnapshot or uploadRelease instead. uploadArchives is forbidden")
-        }
-        if (taskNames != null && taskNames.contains("bintrayUpload")) {
-            throw new GradleException("please use uploadBintray instead. bintrayUpload is forbidden")
-        }
-        //resolutionStrategy
-        configResolutionStrategy(project)
-        project.getExtensions().create("pom", PublishPluginExtension.class, project)
-        //read local properties
-        loadLocalProperties(project)
-        //loadSwitchValue
-        loadSwitchValue(project)
+        super.apply(project)
+        //checkTask
+        checkTask(project)
+        //createExtension
+        createExtension(project)
+        //addExtension
+        addExtension(project)
         //compatible for java 8
         compatibleJava8(project)
         //force Java/JavaDoc encode with UTF-8
@@ -72,23 +63,25 @@ class PublishPlugin implements Plugin<Project> {
 
     }
 
+    @SuppressWarnings("GrMethodMayBeStatic")
+    def checkTask(Project project) {
+        def taskNames = project.gradle.startParameter.getTaskNames()
+        if (taskNames != null && taskNames.contains("uploadArchives")) {
+            throw new GradleException("please use uploadSnapshot or uploadRelease instead. uploadArchives is forbidden")
+        }
+        if (taskNames != null && taskNames.contains("bintrayUpload")) {
+            throw new GradleException("please use uploadBintray instead. bintrayUpload is forbidden")
+        }
+    }
+
+    @SuppressWarnings("GrMethodMayBeStatic")
+    def createExtension(Project project) {
+        project.getExtensions().create("pom", PublishPluginExtension.class, project)
+    }
+
     @SuppressWarnings("UnnecessaryQualifiedReference")
-    def loadSwitchValue(Project project) {
-        def enableDoc = getEnableJavadoc(project)
-        if (enableDoc != null && String.valueOf(enableDoc).equalsIgnoreCase("true")) {
-            enableJavadoc = true
-        }
-
-        project.logger.info("${LOG_PREFIX} ${project.path} enableJavadoc:${enableJavadoc}")
-
-        def enablePOM = getEnableCoordinate(project)
-        if (enablePOM != null && String.valueOf(enablePOM).equalsIgnoreCase("true")) {
-            enablePomCoordinate = true
-        }
-
-        project.logger.info("${LOG_PREFIX} ${project.path} enablePomCoordinate:${enablePomCoordinate}")
-
-        if (enablePomCoordinate) {
+    def addExtension(Project project) {
+        if (getEnableCoordinate(project) == 'true') {
             def pomGroupId = this.getPomGroupId(project)
             def pomArtifactId = this.getPomArtifactId(project)
             def pomVersion = this.getPomVersion(project)
@@ -99,33 +92,27 @@ class PublishPlugin implements Plugin<Project> {
         }
     }
 
-    @SuppressWarnings("GrMethodMayBeStatic")
-    def configResolutionStrategy(Project project) {
-        project.configurations.all {
-            it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
-            it.resolutionStrategy.cacheChangingModulesFor(0, 'seconds')
-        }
-    }
-
     def compatibleJava8(Project project) {
         if (JavaVersion.current().isJava8Compatible()) {
-            project.tasks.withType(Javadoc) {
+            project.getTasks().withType(Javadoc) {
                 options.addStringOption('Xdoclint:none', '-quiet')
             }
         }
     }
 
     def utf8WithJavaCompile(Project project) {
-        project.tasks.withType(JavaCompile) {
+        project.getTasks().withType(JavaCompile) {
             options.encoding = "UTF-8"
         }
 
-        project.tasks.withType(Javadoc) {
-            options.encoding = "utf-8"
+        project.getTasks().withType(Javadoc) {
+            options.encoding = "UTF-8"
         }
     }
 
     def applyThirdPlugin(Project project) {
+        applyPluginIfNotApply(project, DependencyRulePlugin.class)
+        applyPluginIfNotApply(project, ProjectReportsPlugin.class)
         applyPluginIfNotApply(project, MavenPublishPlugin.class)
         applyPluginIfNotApply(project, BintrayPlugin.class)
         applyPluginIfNotApply(project, MavenPluginCompat.class)
@@ -157,7 +144,8 @@ class PublishPlugin implements Plugin<Project> {
 
                 project.artifacts {
                     archives androidSourcesJar
-                    if (enableJavadoc) {
+
+                    if (getEnableJavadoc(project) == 'true') {
                         archives androidJavaDocsJar
                     }
 
@@ -177,7 +165,7 @@ class PublishPlugin implements Plugin<Project> {
 
                 project.artifacts {
                     archives javaSourcesJar
-                    if (enableJavadoc) {
+                    if (getEnableJavadoc(project) == 'true') {
                         archives javaDocJar
                     }
                 }
@@ -252,6 +240,13 @@ class PublishPlugin implements Plugin<Project> {
                             p.dependencies = p.dependencies.findAll { dependency ->
                                 PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
                                 return !publishPluginExtension.shouldExcludeDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                            }
+                            p.dependencies.each { dependency ->
+                                PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
+                                def force = publishPluginExtension.shouldForceDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                                if (force != null && force.version != null && force.version.length() > 0) {
+                                    dependency.version = force.version
+                                }
                             }
                         }
                     }
@@ -349,6 +344,13 @@ class PublishPlugin implements Plugin<Project> {
                         PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
                         return !publishPluginExtension.shouldExcludeDependency(dependency.groupId, dependency.artifactId, dependency.version)
                     }
+                    p.dependencies.each { dependency ->
+                        PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
+                        def force = publishPluginExtension.shouldForceDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                        if (force != null && force.version != null && force.version.length() > 0) {
+                            dependency.version = force.version
+                        }
+                    }
                 }
             }
         }
@@ -440,7 +442,11 @@ class PublishPlugin implements Plugin<Project> {
 
                 pkg {
                     repo = 'maven'
-                    name = pomArtifactId
+                    name = "${pomGroupId}:${pomArtifactId}"
+                    def bintrayOrganization = this.getBintrayOrganization(project)
+                    if (bintrayOrganization) {
+                        userOrg = bintrayOrganization
+                    }
                     def pomDescription = this.getPomDescription(project)
                     if (pomDescription) {
                         desc = pomDescription
@@ -490,8 +496,89 @@ class PublishPlugin implements Plugin<Project> {
             }
 
             if (uploadArchivesTask) {
+                File dependenciesJsonFile = new File(project.buildDir, "dependencies.json")
+                File dependenciesTxtFile = new File(project.buildDir, "dependencies.txt")
+                File mavenJsonFile = new File(project.buildDir, "maven.json")
+                HtmlDependencyReportTask htmlDependencyReportTask = project.task("componentDependencyJSON", type: HtmlDependencyReportTask)
+                HtmlDependencyReporter reporter
+                try {
+                    reporter = new HtmlDependencyReporter(htmlDependencyReportTask.getVersionSelectorScheme(), htmlDependencyReportTask.getVersionComparator())
+                } catch (Exception e) {
+                    reporter = new HtmlDependencyReporter(htmlDependencyReportTask.getVersionSelectorScheme(), htmlDependencyReportTask.getVersionComparator(), htmlDependencyReportTask.getVersionParser())
+                }
+
+                DependencyReportTask dependencyReportTask = project.task("componentDependency", type: DependencyReportTask)
+                dependencyReportTask.doLast {
+                    Gson gson = new GsonBuilder().setPrettyPrinting().create()
+                    String render = reporter.renderer.render(project)
+                    Map dependenciesMap = gson.fromJson(render, Map.class)
+
+                    GFileUtils.deleteQuietly(dependenciesJsonFile)
+                    GFileUtils.writeFile(gson.toJson(dependenciesMap), dependenciesJsonFile)
+                    project.logger.lifecycle "See the report at: file://${dependenciesJsonFile}"
+                }
+                Set<Configuration> configurations = project.getConfigurations().findAll { Configuration configuration ->
+                    return true
+                }
+                dependencyReportTask.setConfigurations(configurations)
+                dependencyReportTask.setOutputFile(dependenciesTxtFile)
+                uploadArchivesTask.dependsOn dependencyReportTask
+
                 if (installTask) {
                     uploadArchivesTask.dependsOn installTask
+                    installTask.finalizedBy dependencyReportTask
+                }
+
+                uploadArchivesTask.doLast {
+                    File pomDir = new File(project.buildDir, "poms")
+                    List<Map<String, String>> poms = new ArrayList<>()
+                    pomDir.eachFileRecurse { File pomFile ->
+                        def pomNodes = new XmlParser().parse(pomFile)
+                        Map<String, String> mavenMap = new HashMap<>()
+                        mavenMap.put("group", pomNodes.get("groupId").text())
+                        mavenMap.put("artifactId", pomNodes.get("artifactId").text())
+                        mavenMap.put("version", pomNodes.get("version").text())
+
+                        List<Map<String, String>> dependencies = new ArrayList<>()
+                        mavenMap.put("dependencies", dependencies)
+                        def dependenciesNode = pomNodes.get("dependencies")
+                        dependenciesNode.each {
+                            it.each {
+                                Map<String, String> dependencyMap = new HashMap<>()
+                                dependencyMap.put("group", it.get("groupId").text())
+                                dependencyMap.put("artifactId", it.get("artifactId").text())
+                                dependencyMap.put("version", it.get("version").text())
+                                dependencyMap.put("scope", it.get("scope").text())
+                                dependencies.add(dependencyMap)
+                            }
+                        }
+                        if (dependencies.size() == 0 && project.getPlugins().hasPlugin("com.android.application")) {
+                            dependencies.addAll(MavenPluginCompat.getMavenDependencies(project))
+                        }
+                        poms.add(mavenMap)
+                    }
+
+                    Gson gson = new GsonBuilder().setPrettyPrinting().create()
+                    GFileUtils.deleteQuietly(mavenJsonFile)
+                    GFileUtils.writeFile(gson.toJson(poms), mavenJsonFile)
+
+
+                    poms.each { Map<String, String> item ->
+                        String group = item.get("group")
+                        String artifactId = item.get("artifactId")
+
+                        File reportDir = new File(project.rootProject.buildDir, "report/${group}/${artifactId}")
+                        GFileUtils.mkdirs(reportDir)
+
+                        GFileUtils.copyFile(dependenciesJsonFile, new File(reportDir, dependenciesJsonFile.getName()))
+                        GFileUtils.copyFile(dependenciesTxtFile, new File(reportDir, dependenciesTxtFile.getName()))
+                        GFileUtils.copyFile(mavenJsonFile, new File(reportDir, mavenJsonFile.getName()))
+
+                        File bundleJsonFile = new File(project.buildDir, "bundle.json")
+                        if (bundleJsonFile.exists() && bundleJsonFile.isFile()) {
+                            GFileUtils.copyFile(bundleJsonFile, new File(reportDir, bundleJsonFile.getName()))
+                        }
+                    }
                 }
             }
 
@@ -559,7 +646,7 @@ class PublishPlugin implements Plugin<Project> {
                     /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
             ]
             git {
-                requireBranch = '(master|master-dev|release)'
+                requireBranch = '(master|master-dev|release|(dync_deploy/.*?))'
                 pushToRemote = 'origin'
                 pushToBranchPrefix = ''
                 commitVersionFileOnly = false
@@ -568,15 +655,15 @@ class PublishPlugin implements Plugin<Project> {
     }
 
     //必须静态，否则无法共享
-    static Boolean isBintrayUpload = null
+
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def configTask(Project project) {
         def releaseTask = project.tasks.findByName('release')
-        def uploadBintray = project.task(dependsOn: releaseTask, 'uploadBintray') {
+        project.task(dependsOn: releaseTask, 'uploadBintray') {
             setGroup('upload')
         }
-        def uploadRelease = project.task(dependsOn: releaseTask, 'uploadRelease') {
+        project.task(dependsOn: releaseTask, 'uploadRelease') {
             setGroup('upload')
         }
         def uploadSnapshot = project.task(dependsOn: project.uploadArchives, 'uploadSnapshot') {
@@ -584,54 +671,11 @@ class PublishPlugin implements Plugin<Project> {
         }
 
         project.afterEvaluate {
-            List<String> taskNames = project.gradle.startParameter.taskNames
-            if (taskNames != null && taskNames.size() > 0) {
-                String startTaskName = taskNames.get(0)
-                project.logger.info("${LOG_PREFIX} ${project.path} startTaskName:${startTaskName}")
-                NameMatcher matcher = new NameMatcher()
-                String actualName = matcher.find(startTaskName, project.tasks.asMap.keySet())
-                project.logger.info("${LOG_PREFIX} ${project.path} actualName:${actualName}")
-
-                //isBintrayUpload逻辑比较变态，不是特别熟悉gradle的话勿动
-                if (isBintrayUpload == null) {
-                    if (actualName != null) {
-                        if (actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload")) {
-                            isBintrayUpload = true
-                        }
-                    } else {
-                        if (startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload")) {
-                            isBintrayUpload = true
-                        }
-                    }
-                } else {
-                    if (startTaskName.contains("createScmAdapter")) {
-                        //not handle
-                        //moduleName:createScmAdapter
-                    } else if (startTaskName.contains("beforeReleaseBuild")) {
-                        //not handle
-                        //moduleName:moduleName:beforeReleaseBuild
-                    } else {
-                        if (actualName != null) {
-                            if (!(actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload"))) {
-                                isBintrayUpload = false
-                            } else if (actualName.equalsIgnoreCase("uploadBintray") || actualName.equalsIgnoreCase("bintrayUpload")) {
-                                isBintrayUpload = true
-                            }
-                        } else {
-                            if (!(startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload"))) {
-                                isBintrayUpload = false
-                            } else if (startTaskName != null && startTaskName.equalsIgnoreCase("uploadBintray") || startTaskName.equalsIgnoreCase("bintrayUpload")) {
-                                isBintrayUpload = true
-                            }
-                        }
-                    }
-
-                }
-            }
+            String isBintrayUpload = readPropertyFromProject(project, "release.bintray", "false")
 
             project.logger.info("${LOG_PREFIX} ${project.path} isBintrayUpload:${isBintrayUpload}")
 
-            if (isBintrayUpload != null && isBintrayUpload) {
+            if (isBintrayUpload == 'true') {
                 project.afterReleaseBuild.dependsOn project.bintrayUpload
             } else {
                 project.afterReleaseBuild.dependsOn project.uploadArchives
@@ -639,7 +683,7 @@ class PublishPlugin implements Plugin<Project> {
                     setGroup('upload')
                     doLast {
                         def pomVersion = this.getPomVersion(project)
-                        if (pomVersion && !pomVersion.toLowerCase().contains("-snapshot")) {
+                        if (pomVersion && !pomVersion?.toUpperCase()?.contains("-SNAPSHOT")) {
                             throw new GradleException("SNAPSHOT build must contains -SNAPSHOT in version")
                         }
                     }
@@ -668,65 +712,42 @@ class PublishPlugin implements Plugin<Project> {
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def isReleaseBuild(Project project) {
         def pomVersion = this.getPomVersion(project)
-        return pomVersion && (!pomVersion.toLowerCase().contains("snapshot"))
-    }
-
-    def loadLocalProperties(Project project) {
-        try {
-            File localFile = project.rootProject.file('local.properties')
-            if (localFile.exists()) {
-                properties.load(localFile.newDataInputStream())
-            }
-        } catch (Exception e) {
-            println("load local properties failed msg:${e.message}")
-        }
-    }
-
-    def readPropertyFromLocalProperties(Project project, String key, String defaultValue) {
-        readPropertyFromLocalPropertiesOrThrow(project, key, defaultValue, true)
-    }
-
-    @SuppressWarnings("GroovyUnusedDeclaration")
-    def readPropertyFromLocalPropertiesOrThrow(Project project, String key, String defaultValue, boolean throwIfNull) {
-        def property = (properties != null && properties.containsKey(key)) ? properties.getProperty(key, defaultValue) : defaultValue
-        if (property == null && throwIfNull) {
-            throw new GradleException("you must config ${key} in properties. Like config project.ext.${key} , add ${key} in gradle.properties or add ${key} in local.properties which locates on root project dir")
-        }
-        return property
+        return pomVersion && (!pomVersion.toUpperCase().contains("SNAPSHOT"))
     }
 
     def getReleaseRepositoryUrl(Project project) {
-        return project.hasProperty('RELEASE_REPOSITORY_URL') ? project.ext.RELEASE_REPOSITORY_URL : readPropertyFromLocalPropertiesOrThrow(project, 'RELEASE_REPOSITORY_URL', null, false)
+        return readPropertyFromProject(project, "RELEASE_REPOSITORY_URL", null, true)
     }
 
     def getSnapshotRepositoryUrl(Project project) {
-        return project.hasProperty('SNAPSHOT_REPOSITORY_URL') ? project.ext.SNAPSHOT_REPOSITORY_URL : readPropertyFromLocalPropertiesOrThrow(project, 'SNAPSHOT_REPOSITORY_URL', null, false)
+        return readPropertyFromProject(project, "SNAPSHOT_REPOSITORY_URL", null, true)
     }
 
     def getReleaseRepositoryUsername(Project project) {
-        return project.hasProperty('RELEASE_REPOSITORY_USERNAME') ? project.ext.RELEASE_REPOSITORY_USERNAME : readPropertyFromLocalPropertiesOrThrow(project, 'RELEASE_REPOSITORY_USERNAME', null, false)
+        return readPropertyFromProject(project, "RELEASE_REPOSITORY_USERNAME", null, true)
     }
 
     def getReleaseRepositoryPassword(Project project) {
-        return project.hasProperty('RELEASE_REPOSITORY_PASSWORD') ? project.ext.RELEASE_REPOSITORY_PASSWORD : readPropertyFromLocalPropertiesOrThrow(project, 'RELEASE_REPOSITORY_PASSWORD', null, false)
+        return readPropertyFromProject(project, "RELEASE_REPOSITORY_PASSWORD", null, true)
     }
 
     def getSnapshotRepositoryUsername(Project project) {
-        return project.hasProperty('SNAPSHOT_REPOSITORY_USERNAME') ? project.ext.SNAPSHOT_REPOSITORY_USERNAME : readPropertyFromLocalPropertiesOrThrow(project, 'SNAPSHOT_REPOSITORY_USERNAME', null, false)
+        return readPropertyFromProject(project, "SNAPSHOT_REPOSITORY_USERNAME", null, true)
     }
 
     def getSnapshotRepositoryPassword(Project project) {
-        return project.hasProperty('SNAPSHOT_REPOSITORY_PASSWORD') ? project.ext.SNAPSHOT_REPOSITORY_PASSWORD : readPropertyFromLocalPropertiesOrThrow(project, 'SNAPSHOT_REPOSITORY_PASSWORD', null, false)
+        return readPropertyFromProject(project, "SNAPSHOT_REPOSITORY_PASSWORD", null, true)
     }
 
     def getPomGroupId(Project project) {
-        return project.hasProperty('PROJECT_POM_GROUP_ID') ? project.ext.PROJECT_POM_GROUP_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_GROUP_ID', project.group.toString())
+        return readPropertyFromProject(project, "PROJECT_POM_GROUP_ID", project.group.toString(), true)
     }
 
     def getPomArtifactId(Project project) {
-        return project.hasProperty('PROJECT_POM_ARTIFACT_ID') ? project.ext.PROJECT_POM_ARTIFACT_ID : readPropertyFromLocalProperties(project, 'PROJECT_POM_ARTIFACT_ID', getDefaultPomArtifactId(project))
+        return readPropertyFromProject(project, "PROJECT_POM_ARTIFACT_ID", getDefaultPomArtifactId(project), true)
     }
 
+    @SuppressWarnings("GrMethodMayBeStatic")
     def getDefaultPomArtifactId(Project project) {
         if (project.hasProperty('archivesBaseName')) {
             return project.archivesBaseName.toString()
@@ -735,58 +756,62 @@ class PublishPlugin implements Plugin<Project> {
     }
 
     def getPomVersion(Project project) {
-        return project.hasProperty('PROJECT_POM_VERSION') ? project.ext.PROJECT_POM_VERSION : readPropertyFromLocalProperties(project, 'PROJECT_POM_VERSION', project.version.toString())
+        return readPropertyFromProject(project, "PROJECT_POM_VERSION", project.version.toString(), true)
     }
 
     def getPomWebsiteUrl(Project project) {
-        return project.hasProperty('POM_WEBSITE_URL') ? project.ext.POM_WEBSITE_URL : readPropertyFromLocalPropertiesOrThrow(project, 'POM_WEBSITE_URL', null, false)
+        return readPropertyFromProject(project, "POM_WEBSITE_URL", null, false)
     }
 
     def getPomVcsUrl(Project project) {
-        return project.hasProperty('POM_VCS_URL') ? project.ext.POM_VCS_URL : readPropertyFromLocalPropertiesOrThrow(project, 'POM_VCS_URL', null, false)
+        return readPropertyFromProject(project, "POM_VCS_URL", null, false)
     }
 
     def getPomIssueUrl(Project project) {
-        return project.hasProperty('POM_ISSUE_URL') ? project.ext.POM_ISSUE_URL : readPropertyFromLocalPropertiesOrThrow(project, 'POM_ISSUE_URL', null, false)
+        return readPropertyFromProject(project, "POM_ISSUE_URL", null, false)
     }
 
     def getPomLicense(Project project) {
-        return project.hasProperty('POM_LICENSE') ? project.ext.POM_LICENSE : readPropertyFromLocalPropertiesOrThrow(project, 'POM_LICENSE', null, false)
+        return readPropertyFromProject(project, "POM_LICENSE", null, false)
     }
 
     def getPomLicenseUrl(Project project) {
-        return project.hasProperty('POM_LICENSE_URL') ? project.ext.POM_LICENSE_URL : readPropertyFromLocalPropertiesOrThrow(project, 'POM_LICENSE_URL', null, false)
+        return readPropertyFromProject(project, "POM_LICENSE_URL", null, false)
     }
 
     def getPomDeveloperId(Project project) {
-        return project.hasProperty('POM_DEVELOPER_ID') ? project.ext.POM_DEVELOPER_ID : readPropertyFromLocalPropertiesOrThrow(project, 'POM_DEVELOPER_ID', null, false)
+        return readPropertyFromProject(project, "POM_DEVELOPER_ID", null, false)
     }
 
     def getPomDeveloperName(Project project) {
-        return project.hasProperty('POM_DEVELOPER_NAME') ? project.ext.POM_DEVELOPER_NAME : readPropertyFromLocalPropertiesOrThrow(project, 'POM_DEVELOPER_NAME', null, false)
+        return readPropertyFromProject(project, "POM_DEVELOPER_NAME", null, false)
     }
 
     def getPomDeveloperEmail(Project project) {
-        return project.hasProperty('POM_DEVELOPER_EMAIL') ? project.ext.POM_DEVELOPER_EMAIL : readPropertyFromLocalPropertiesOrThrow(project, 'POM_DEVELOPER_EMAIL', null, false)
+        return readPropertyFromProject(project, "POM_DEVELOPER_EMAIL", null, false)
     }
 
     def getPomDescription(Project project) {
-        return project.hasProperty('POM_DESCRIPTION') ? project.ext.POM_DESCRIPTION : readPropertyFromLocalPropertiesOrThrow(project, 'POM_DESCRIPTION', null, false)
+        return readPropertyFromProject(project, "POM_DESCRIPTION", null, false)
     }
 
     def getBintrayUser(Project project) {
-        return project.hasProperty('BINTRAY_USER') ? project.ext.BINTRAY_USER : readPropertyFromLocalPropertiesOrThrow(project, 'BINTRAY_USER', null, false)
+        return readPropertyFromProject(project, "BINTRAY_USER", null, false)
     }
 
     def getBintrayKey(Project project) {
-        return project.hasProperty('BINTRAY_APIKEY') ? project.ext.BINTRAY_APIKEY : readPropertyFromLocalPropertiesOrThrow(project, 'BINTRAY_APIKEY', null, false)
+        return readPropertyFromProject(project, "BINTRAY_APIKEY", null, false)
+    }
+
+    def getBintrayOrganization(Project project) {
+        return readPropertyFromProject(project, "BINTRAY_ORGANIZATION", null, false)
     }
 
     def getEnableJavadoc(Project project) {
-        return project.hasProperty('POM_ENABLE_JAVADOC') ? project.ext.POM_ENABLE_JAVADOC : readPropertyFromLocalPropertiesOrThrow(project, 'POM_ENABLE_JAVADOC', 'false', false)
+        return readPropertyFromProject(project, "POM_ENABLE_JAVADOC", 'false', false)
     }
 
     def getEnableCoordinate(Project project) {
-        return project.hasProperty('POM_ENABLE_COORDINATE') ? project.ext.POM_ENABLE_COORDINATE : readPropertyFromLocalPropertiesOrThrow(project, 'POM_ENABLE_COORDINATE', 'false', false)
+        return readPropertyFromProject(project, "POM_ENABLE_COORDINATE", 'true', false)
     }
 }
