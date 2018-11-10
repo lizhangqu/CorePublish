@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
+
 import java.lang.reflect.Field
 
 /**
@@ -44,7 +45,7 @@ class ProvidedAarPlugin implements Plugin<Project> {
      */
     @SuppressWarnings("UnnecessaryQualifiedReference")
     void providedAarCompat() {
-        if (!project.getPlugins().hasPlugin("com.android.application")) {
+        if (!project.getPlugins().hasPlugin("com.android.application") && !project.getPlugins().hasPlugin("com.android.library")) {
             return
         }
         if (project.getConfigurations().findByName("providedAar") != null) {
@@ -64,6 +65,9 @@ class ProvidedAarPlugin implements Plugin<Project> {
             } else {
                 providedConfiguration.extendsFrom(providedAarConfiguration)
             }
+        }
+        if (project.getPlugins().hasPlugin("com.android.library")) {
+            return
         }
         if (androidGradlePluginVersion.startsWith("0.") || androidGradlePluginVersion.startsWith("1.0") || androidGradlePluginVersion.startsWith("1.1") || androidGradlePluginVersion.startsWith("1.2")) {
             //不支持小于1.3.0的版本，不含1.3.0
@@ -96,6 +100,21 @@ class ProvidedAarPlugin implements Plugin<Project> {
                                         //兼容1.3.0~2.1.3版本，为了将provided的aar不参与打包，将isOptional设为true
                                         if (androidGradlePluginVersion.startsWith("1.3") || androidGradlePluginVersion.startsWith("1.5") || androidGradlePluginVersion.startsWith("2.0") || androidGradlePluginVersion.startsWith("2.1")) {
                                             def configurationDependencies = dependencyChecker.configurationDependencies
+
+                                            configurationDependencies.jars.each { def jarLib ->
+                                                def jarResolvedCoordinates = jarLib.getResolvedCoordinates()
+                                                providedAarConfiguration.getResolvedConfiguration().getResolvedArtifacts().each {
+                                                    def module = it.getModuleVersion().getId()
+                                                    if (jarResolvedCoordinates.getGroupId() == module.getGroup() && jarResolvedCoordinates.getArtifactId() == module.getName()) {
+                                                        Field packagedField = jarLib.getClass().getDeclaredField("mPackaged")
+                                                        Field modifiersField = Field.class.getDeclaredField("modifiers")
+                                                        modifiersField.setAccessible(true)
+                                                        modifiersField.setInt(packagedField, packagedField.getModifiers() & ~java.lang.reflect.Modifier.FINAL)
+                                                        packagedField.setAccessible(true)
+                                                        packagedField.setBoolean(jarLib, false)
+                                                    }
+                                                }
+                                            }
                                             List libraries = configurationDependencies.libraries
                                             libraries.each { library ->
                                                 providedAarConfiguration.dependencies.each { providedDependency ->
