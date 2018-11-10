@@ -15,43 +15,35 @@
  */
 package io.github.lizhangqu
 
-
-import org.gradle.api.Action;
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.ModuleVersionIdentifier;
-import org.gradle.api.artifacts.dsl.RepositoryHandler;
-import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer;
-import org.gradle.api.artifacts.maven.MavenPom;
-import org.gradle.api.artifacts.maven.MavenResolver;
-import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier;
-import org.gradle.api.internal.artifacts.configurations.ConfigurationInternal;
-import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler;
-import org.gradle.api.internal.artifacts.ivyservice.projectmodule.DefaultProjectPublication;
-import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectPublicationRegistry;
-import org.gradle.api.internal.artifacts.mvnsettings.LocalMavenRepositoryLocator;
-import org.gradle.api.internal.artifacts.mvnsettings.MavenSettingsProvider;
-import org.gradle.api.internal.file.FileResolver;
-import org.gradle.api.internal.plugins.DslObject;
+import org.gradle.api.Action
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ConfigurationContainer
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ModuleVersionIdentifier
+import org.gradle.api.artifacts.dsl.RepositoryHandler
+import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer
+import org.gradle.api.artifacts.maven.MavenPom
+import org.gradle.api.artifacts.maven.MavenResolver
+import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier
+import org.gradle.api.internal.artifacts.configurations.ConfigurationInternal
+import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler
+import org.gradle.api.internal.artifacts.ivyservice.projectmodule.DefaultProjectPublication
+import org.gradle.api.internal.artifacts.ivyservice.projectmodule.ProjectPublicationRegistry
+import org.gradle.api.internal.artifacts.mvnsettings.LocalMavenRepositoryLocator
+import org.gradle.api.internal.artifacts.mvnsettings.MavenSettingsProvider
+import org.gradle.api.internal.file.FileResolver
+import org.gradle.api.internal.plugins.DslObject
 import org.gradle.api.internal.project.ProjectInternal
-import org.gradle.api.plugins.BasePlugin;
-import org.gradle.api.plugins.Convention
-import org.gradle.api.plugins.JavaBasePlugin;
-import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.MavenPluginConvention
-import org.gradle.api.plugins.MavenRepositoryHandlerConvention;
-import org.gradle.api.plugins.PluginContainer;
-import org.gradle.api.plugins.WarPlugin;
-import org.gradle.api.publication.maven.internal.DefaultDeployerFactory;
-import org.gradle.api.publication.maven.internal.DefaultMavenRepositoryHandlerConvention;
+import org.gradle.api.plugins.*
+import org.gradle.api.publication.maven.internal.DefaultDeployerFactory
+import org.gradle.api.publication.maven.internal.DefaultMavenRepositoryHandlerConvention
 import org.gradle.api.publication.maven.internal.MavenFactory
-import org.gradle.api.tasks.Upload;
-import org.gradle.configuration.project.ProjectConfigurationActionContainer;
+import org.gradle.api.tasks.Upload
+import org.gradle.configuration.project.ProjectConfigurationActionContainer
 
-import javax.inject.Inject;
+import javax.inject.Inject
 
 /**
  * <p>A {@link org.gradle.api.Plugin} which allows project artifacts to be deployed to a Maven repository, or installed
@@ -91,16 +83,8 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
         this.project = project;
         project.getPlugins().apply(BasePlugin.class);
 
-        MavenFactory mavenFactory = null
-        try {
-            mavenFactory = project.getServices().get(MavenFactory.class);
-        } catch (Exception e) {
-            project.logger.info(e.getMessage())
-        }
-        if (mavenFactory == null) {
-            mavenFactory = Class.forName("org.gradle.api.publication.maven.internal.DefaultMavenFactory").newInstance()
-        }
-        final MavenPluginConvention pluginConvention = addConventionObject(project, mavenFactory);
+        MavenFactory mavenFactory = getMavenFactory(project)
+        MavenPluginConvention pluginConvention = getMavenPluginConvention(project, mavenFactory)
         //noinspection GroovyAssignabilityCheck
         DefaultDeployerFactory deployerFactory = null
         try {
@@ -215,6 +199,46 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
 
     }
 
+    /**
+     * afterEvaluate后调用
+     */
+    static List<Map<String, String>> getMavenDependencies(Project project) {
+        List<Map<String, String>> dependencyList = new ArrayList<>()
+        def mavenFactory = getMavenFactory(project)
+        def mavenPluginConvention = getMavenPluginConvention(project, mavenFactory)
+        configureAndroidScopeMappings(project.getConfigurations(), mavenPluginConvention.getConf2ScopeMappings());
+        configureAndroidProvidedScopeMappings(project.getConfigurations(), mavenPluginConvention.getConf2ScopeMappings());
+        def pomDependenciesConverter = mavenFactory.createPomDependenciesConverter()
+        def dependencies = pomDependenciesConverter.convert(mavenPluginConvention.getConf2ScopeMappings(), project.getConfigurations());
+        dependencies.each {
+            //it->org.apache.maven.model.Dependency
+            Map<String, String> dependencyMap = new HashMap<>()
+            dependencyMap.put("group", it.getGroupId())
+            dependencyMap.put("artifactId", it.getArtifactId())
+            dependencyMap.put("version", it.getVersion())
+            dependencyMap.put("scope", it.getScope())
+            dependencyList.add(dependencyMap)
+        }
+        return dependencyList
+    }
+
+    static MavenPluginConvention getMavenPluginConvention(ProjectInternal project, MavenFactory mavenFactory) {
+        return addConventionObject(project, mavenFactory);
+    }
+
+    static MavenFactory getMavenFactory(ProjectInternal project) {
+        MavenFactory mavenFactory = null
+        try {
+            mavenFactory = project.getServices().get(MavenFactory.class);
+        } catch (Exception e) {
+            project.logger.info(e.getMessage())
+        }
+        if (mavenFactory == null) {
+            mavenFactory = Class.forName("org.gradle.api.publication.maven.internal.DefaultMavenFactory").newInstance()
+        }
+        mavenFactory
+    }
+
     private void configureUploadTasks(final DefaultDeployerFactory deployerFactory) {
         project.getTasks().withType(Upload.class, new Action<Upload>() {
             public void execute(Upload upload) {
@@ -244,27 +268,34 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
                             pom.getArtifactId().equals("empty-project") ? module.getName() : pom.getArtifactId(),
                             pom.getVersion().equals("0") ? module.getVersion() : pom.getVersion()
                     );
-                    publicationRegistry.registerPublication(project.getPath(), new DefaultProjectPublication(publicationId));
+                    try {
+                        publicationRegistry.registerPublication(project.getPath(), new DefaultProjectPublication(publicationId));
+                    } catch (Exception e) {
+                        //compat for gradle 4.6
+                        //noinspection UnnecessaryQualifiedReference
+                        publicationRegistry.registerPublication(project.getPath(), new DefaultProjectPublication(org.gradle.internal.Describables.withTypeAndName("Maven repository", resolver.getName()), publicationId, true))
+
+                    }
                 }
             }
         });
     }
 
-    private MavenPluginConvention addConventionObject(ProjectInternal project, MavenFactory mavenFactory) {
+    static MavenPluginConvention addConventionObject(ProjectInternal project, MavenFactory mavenFactory) {
         MavenPluginConvention mavenConvention = new MavenPluginConvention(project, mavenFactory);
         Convention convention = project.getConvention();
         convention.getPlugins().put("maven", mavenConvention);
         return mavenConvention;
     }
 
-    private void configureJavaScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
+    static void configureJavaScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
         mavenScopeMappings.addMapping(COMPILE_PRIORITY, configurations.getByName("compile"),
                 Conf2ScopeMappingContainer.COMPILE);
         mavenScopeMappings.addMapping(RUNTIME_PRIORITY, configurations.getByName("runtime"),
                 Conf2ScopeMappingContainer.RUNTIME);
         //兼容gradle 4.0
         try {
-            mavenScopeMappings.addMapping(RUNTIME_PRIORITY, configurations.getByName("implementation"),
+            mavenScopeMappings.addMapping(RUNTIME_PRIORITY + 1, configurations.getByName("implementation"),
                     Conf2ScopeMappingContainer.RUNTIME);
         } catch (Exception e) {
 
@@ -285,10 +316,10 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
 
     }
 
-    private void configureJavaLibraryScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
+    static void configureJavaLibraryScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
         //兼容gradle 4.0
         try {
-            mavenScopeMappings.addMapping(COMPILE_PRIORITY, configurations.getByName("api"),
+            mavenScopeMappings.addMapping(COMPILE_PRIORITY + 1, configurations.getByName("api"),
                     Conf2ScopeMappingContainer.COMPILE);
         } catch (Exception e) {
 
@@ -296,14 +327,14 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
 
     }
 
-    private void configureWarScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
+    static void configureWarScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
         mavenScopeMappings.addMapping(PROVIDED_COMPILE_PRIORITY, configurations.getByName("providedCompile"),
                 Conf2ScopeMappingContainer.PROVIDED);
         mavenScopeMappings.addMapping(PROVIDED_RUNTIME_PRIORITY, configurations.getByName("providedRuntime"),
                 Conf2ScopeMappingContainer.PROVIDED);
     }
 
-    private void configureInstall(Project project) {
+    static void configureInstall(Project project) {
         Upload installUpload = project.getTasks().create(INSTALL_TASK_NAME, Upload.class);
         Configuration configuration = project.getConfigurations().getByName(Dependency.ARCHIVES_CONFIGURATION);
         installUpload.setConfiguration(configuration);
@@ -312,16 +343,16 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
         installUpload.setDescription("Installs the 'archives' artifacts into the local Maven repository.");
     }
 
-    private void configureAndroidScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
+    static void configureAndroidScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
+        mavenScopeMappings.addMapping(COMPILE_PRIORITY, configurations.getByName("compile"),
+                Conf2ScopeMappingContainer.COMPILE);
+
         //兼容gradle 4.0 和android gradle plugin 3.0.0
         try {
-            mavenScopeMappings.addMapping(COMPILE_PRIORITY, configurations.getByName("api"),
+            mavenScopeMappings.addMapping(COMPILE_PRIORITY + 1, configurations.getByName("api"),
                     Conf2ScopeMappingContainer.COMPILE);
         } catch (Exception e) {
         }
-
-        mavenScopeMappings.addMapping(COMPILE_PRIORITY, configurations.getByName("compile"),
-                Conf2ScopeMappingContainer.COMPILE);
 
         //兼容gradle 4.0 和android gradle plugin 3.0.0
         try {
@@ -337,6 +368,33 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
         try {
             mavenScopeMappings.addMapping(TEST_RUNTIME_PRIORITY, configurations.getByName("testImplementation"),
                     Conf2ScopeMappingContainer.TEST);
+        } catch (Exception e) {
+        }
+
+    }
+
+    static void configureAndroidProvidedScopeMappings(ConfigurationContainer configurations, Conf2ScopeMappingContainer mavenScopeMappings) {
+        try {
+            mavenScopeMappings.addMapping(PROVIDED_COMPILE_PRIORITY, configurations.getByName("provided"),
+                    Conf2ScopeMappingContainer.PROVIDED);
+        } catch (Exception e) {
+        }
+
+        try {
+            mavenScopeMappings.addMapping(PROVIDED_COMPILE_PRIORITY + 1, configurations.getByName("compileOnly"),
+                    Conf2ScopeMappingContainer.PROVIDED);
+        } catch (Exception e) {
+        }
+
+        try {
+            mavenScopeMappings.addMapping(PROVIDED_COMPILE_PRIORITY + 2, configurations.getByName("providedAar"),
+                    Conf2ScopeMappingContainer.PROVIDED);
+        } catch (Exception e) {
+        }
+
+        try {
+            mavenScopeMappings.addMapping(PROVIDED_COMPILE_PRIORITY + 3, configurations.getByName("bundleApiProvided"),
+                    Conf2ScopeMappingContainer.PROVIDED);
         } catch (Exception e) {
         }
 
