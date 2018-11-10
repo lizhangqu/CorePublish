@@ -84,7 +84,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath('io.github.lizhangqu:core-publish:1.3.7')
+        classpath('io.github.lizhangqu:core-publish:1.3.3')
     }
     configurations.all {
         it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')
@@ -101,6 +101,9 @@ ext {
     SNAPSHOT_REPOSITORY_PASSWORD = ""
 }
 
+
+group="io.github.lizhangqu"
+archivesBaseName="core-publish"
 
 apply plugin: 'android.publish'
 //因为version在动态变化，所以这里指定versionKey
