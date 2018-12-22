@@ -16,7 +16,8 @@ class PrefixTaskPlugin extends BasePropertiesPlugin {
                 String pomGroupId = getPomGroupId(project)
                 String pomArchivesBaseName = getPomArtifactId(project)
 
-                project.tasks.getNames().each {
+                SortedSet<String> taskNames = project.getTasks().getNames()
+                new TreeSet<String>(taskNames).each {
                     def originalTask = project.tasks.findByName(it)
                     if (originalTask) {
                         def taskNameWithPrefix = "[${pomGroupId}-${pomArchivesBaseName}]${originalTask.name}"

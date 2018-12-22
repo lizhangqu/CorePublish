@@ -176,7 +176,16 @@ class ProvidedAarPlugin implements Plugin<Project> {
                         boolean needRedirectAction = false
                         prepareBuildTask.actions.iterator().with { actionsIterator ->
                             actionsIterator.each { action ->
-                                if (action.getActionClassName().contains("AppPreBuildTask")) {
+                                String actionName = null
+                                try {
+                                    actionName = action.getActionClassName()
+                                } catch (Exception e) {
+                                    def standardTaskAction = action.metaClass.getProperty(action, "action")
+                                    Field actionType = Class.forName("org.gradle.api.internal.project.taskfactory.StandardTaskAction").getDeclaredField("type")
+                                    actionType.setAccessible(true)
+                                    actionName = actionType.get(standardTaskAction)?.toString()
+                                }
+                                if (actionName?.contains("AppPreBuildTask")) {
                                     actionsIterator.remove()
                                     needRedirectAction = true
                                 }

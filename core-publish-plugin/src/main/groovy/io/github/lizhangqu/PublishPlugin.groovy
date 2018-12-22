@@ -599,16 +599,28 @@ class PublishPlugin extends BasePropertiesPlugin {
             project.tasks.all { Task task ->
                 if (task.name.equalsIgnoreCase('generatePomFileForMavenPublication')) {
                     if (project.hasProperty("android")) {
-                        task.dependsOn project.tasks.getByName('assembleRelease')
+                        def assembleRelease = project.tasks.findByName('assembleRelease')
+                        if (assembleRelease) {
+                            task.dependsOn assembleRelease
+                        }
                     } else {
-                        task.dependsOn project.tasks.getByName('assemble')
+                        def assemble = project.tasks.findByName('assemble')
+                        if (assemble) {
+                            task.dependsOn assemble
+                        }
                     }
                 }
                 if (task.name.equalsIgnoreCase('install')) {
                     if (project.hasProperty("android")) {
-                        task.dependsOn project.tasks.getByName('assembleRelease')
+                        def assembleRelease = project.tasks.findByName('assembleRelease')
+                        if (assembleRelease) {
+                            task.dependsOn assembleRelease
+                        }
                     } else {
-                        task.dependsOn project.tasks.getByName('assemble')
+                        def assemble = project.tasks.findByName('assemble')
+                        if (assemble) {
+                            task.dependsOn assemble
+                        }
                     }
                 }
             }
