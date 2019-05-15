@@ -18,6 +18,7 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.util.GFileUtils
 import io.github.lizhangqu.release.ReleasePlugin
 
+import java.text.SimpleDateFormat
 import java.util.regex.Matcher
 
 /**
@@ -87,7 +88,11 @@ class PublishPlugin extends BasePropertiesPlugin {
             def pomVersion = this.getPomVersion(project)
 
             project.group = pomGroupId
-            project.archivesBaseName = pomArtifactId
+            try {
+                project.archivesBaseName = pomArtifactId
+            } catch (MissingPropertyException e) {
+            }
+
             project.version = pomVersion
         }
     }
@@ -153,21 +158,25 @@ class PublishPlugin extends BasePropertiesPlugin {
 
             } else {
 
-                def javaSourcesJar = project.task(type: Jar, dependsOn: project.classes, 'javaSourcesJar') {
-                    classifier = 'sources'
-                    from project.sourceSets.main.allSource
-                }
-
-                def javaDocJar = project.task(type: Jar, dependsOn: project.javadoc, 'javaDocJar') {
-                    classifier = 'javadoc'
-                    from project.javadoc.getDestinationDir()
-                }
-
-                project.artifacts {
-                    archives javaSourcesJar
-                    if (getEnableJavadoc(project) == 'true') {
-                        archives javaDocJar
+                try {
+                    def javaSourcesJar = project.task(type: Jar, dependsOn: project.classes, 'javaSourcesJar') {
+                        classifier = 'sources'
+                        from project.sourceSets.main.allSource
                     }
+
+                    def javaDocJar = project.task(type: Jar, dependsOn: project.javadoc, 'javaDocJar') {
+                        classifier = 'javadoc'
+                        from project.javadoc.getDestinationDir()
+                    }
+
+                    project.artifacts {
+                        archives javaSourcesJar
+                        if (getEnableJavadoc(project) == 'true') {
+                            archives javaDocJar
+                        }
+                    }
+                } catch (Exception e) {
+                    project.logger.error("Maybe Not Java Project, Just Ignore It.")
                 }
 
             }
@@ -176,82 +185,92 @@ class PublishPlugin extends BasePropertiesPlugin {
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
     def configInstall(Project project) {
-        project.install {
-            repositories {
-                mavenInstaller {
-                    pom.project {
-                        def pomGroupId = this.getPomGroupId(project)
-                        def pomArtifactId = this.getPomArtifactId(project)
-                        def pomVersion = this.getPomVersion(project)
+        try {
+            project.install {
+                repositories {
+                    mavenInstaller {
+                        pom.project {
+                            def pomGroupId = this.getPomGroupId(project)
+                            def pomArtifactId = this.getPomArtifactId(project)
+                            def pomVersion = this.getPomVersion(project)
 
-                        // This generates POM.xml with proper parameters
-                        groupId = pomGroupId
-                        artifactId = pomArtifactId
-                        version = pomVersion
+                            // This generates POM.xml with proper parameters
+                            groupId = pomGroupId
+                            artifactId = pomArtifactId
+                            version = pomVersion
 
-                        name pomArtifactId
+                            name pomArtifactId
+                            description this.getBuildDescription(project)
 
-                        def pomWebsiteUrl = this.getPomWebsiteUrl(project)
-                        if (pomWebsiteUrl) {
-                            url pomWebsiteUrl
-                        }
-
-                        def pomVcsUrl = this.getPomVcsUrl(project)
-                        if (pomVcsUrl) {
-                            scm {
-                                url pomVcsUrl
-                                connection pomVcsUrl
-                                developerConnection pomVcsUrl
+                            def pomWebsiteUrl = this.getPomWebsiteUrl(project)
+                            if (pomWebsiteUrl) {
+                                url pomWebsiteUrl
                             }
-                        }
 
-                        def pomLicense = this.getPomLicense(project)
-                        def pomLicenseUrl = this.getPomLicenseUrl(project)
-                        if (pomLicense && pomLicenseUrl) {
-                            licenses {
-                                license {
-                                    name pomLicense
-                                    url pomLicenseUrl
+                            def pomVcsUrl = this.getPomVcsUrl(project)
+                            if (pomVcsUrl) {
+                                scm {
+                                    url pomVcsUrl
+                                    connection pomVcsUrl
+                                    developerConnection pomVcsUrl
                                 }
                             }
-                        }
 
-                        def pomDeveloperId = this.getPomDeveloperId(project)
-                        def pomDeveloperName = this.getPomDeveloperName(project)
-                        def pomDeveloperEmail = this.getPomDeveloperEmail(project)
-                        if (pomDeveloperId || pomDeveloperName || pomDeveloperEmail) {
-                            developers {
-                                developer {
-                                    if (pomDeveloperId) {
-                                        id pomDeveloperId
-                                    }
-                                    if (pomDeveloperName) {
-                                        name pomDeveloperName
-                                    }
-                                    if (pomDeveloperEmail) {
-                                        email pomDeveloperEmail
+                            def pomLicense = this.getPomLicense(project)
+                            def pomLicenseUrl = this.getPomLicenseUrl(project)
+                            if (pomLicense && pomLicenseUrl) {
+                                licenses {
+                                    license {
+                                        name pomLicense
+                                        url pomLicenseUrl
                                     }
                                 }
                             }
-                        }
-                    }
-                    pom {
-                        whenConfigured { p ->
-                            p.dependencies = p.dependencies.findAll { dependency ->
-                                PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
-                                return !publishPluginExtension.shouldExcludeDependency(dependency.groupId, dependency.artifactId, dependency.version)
+
+                            def pomDeveloperId = this.getPomDeveloperId(project)
+                            def pomDeveloperName = this.getPomDeveloperName(project)
+                            def pomDeveloperEmail = this.getPomDeveloperEmail(project)
+                            if (pomDeveloperId || pomDeveloperName || pomDeveloperEmail) {
+                                developers {
+                                    developer {
+                                        if (pomDeveloperId) {
+                                            id pomDeveloperId
+                                        }
+                                        if (pomDeveloperName) {
+                                            name pomDeveloperName
+                                        }
+                                        if (pomDeveloperEmail) {
+                                            email pomDeveloperEmail
+                                        }
+                                    }
+                                }
                             }
-                            p.dependencies.each { dependency ->
-                                PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
-                                def force = publishPluginExtension.shouldForceDependency(dependency.groupId, dependency.artifactId, dependency.version)
-                                if (force != null && force.version != null && force.version.length() > 0) {
-                                    dependency.version = force.version
+                        }
+                        pom {
+                            whenConfigured { p ->
+                                p.dependencies = p.dependencies.findAll { dependency ->
+                                    PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
+                                    return !publishPluginExtension.shouldExcludeDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                                }
+                                p.dependencies.each { dependency ->
+                                    PublishPluginExtension publishPluginExtension = project.getExtensions().findByType(PublishPluginExtension.class)
+                                    def force = publishPluginExtension.shouldForceDependency(dependency.groupId, dependency.artifactId, dependency.version)
+                                    if (force != null && force.version != null && force.version.length() > 0) {
+                                        dependency.version = force.version
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+        } catch (Exception e) {
+            String msg = e.getMessage()
+            if (msg?.contains("Could not find method install()")) {
+                project.logger.error("Can't Find `install` Method, Just Ignore it.")
+                return
+            }
+            throw e
         }
     }
 
@@ -292,6 +311,7 @@ class PublishPlugin extends BasePropertiesPlugin {
 
                     pom.project {
                         name pomArtifactId
+                        description this.getBuildDescription(project)
 
                         def pomWebsiteUrl = this.getPomWebsiteUrl(project)
                         if (pomWebsiteUrl) {
@@ -701,8 +721,26 @@ class PublishPlugin extends BasePropertiesPlugin {
                     }
                 }
                 uploadSnapshot.dependsOn checkSnapshotVersion
-                project.install.mustRunAfter checkSnapshotVersion
-                project.uploadArchives.mustRunAfter checkSnapshotVersion
+                try {
+                    project.install.mustRunAfter checkSnapshotVersion
+                } catch (Exception e) {
+                    String msg = e.getMessage()
+                    if (msg?.contains("Could not get unknown property 'install'")) {
+                        project.logger.error("Can't Get `install` Property, Just Ignore it.")
+                        return
+                    }
+                    throw e
+                }
+                try {
+                    project.uploadArchives.mustRunAfter checkSnapshotVersion
+                } catch (Exception e) {
+                    String msg = e.getMessage()
+                    if (msg?.contains("Could not get unknown property 'uploadArchives'")) {
+                        project.logger.error("Can't Get `uploadArchives` Property, Just Ignore it.")
+                        return
+                    }
+                    throw e
+                }
             }
         }
     }
@@ -805,6 +843,36 @@ class PublishPlugin extends BasePropertiesPlugin {
 
     def getPomDescription(Project project) {
         return readPropertyFromProject(project, "POM_DESCRIPTION", null, false)
+    }
+
+    def getBuildDescription(Project project) {
+        Map<String, String> envMap = System.getenv()
+        String jobName = envMap.get("JOB_NAME")
+        String buildNumber = envMap.get("BUILD_NUMBER")
+        String gitCommit = envMap.get("GIT_COMMIT")
+        String userName = System.getProperty("user.name")
+        String osName = System.getProperty("os.name")
+        String osVersion = System.getProperty("os.version")
+        String osArch = System.getProperty("os.arch")
+        String javaVersion = System.getProperty("java.version")
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"))
+        String buildTime = simpleDateFormat.format(new Date())
+        String gradleVersion = project.gradle.gradleVersion
+        String agpVersion = getAndroidGradlePluginVersionCompat()
+        return "[${osName}]-[${osVersion}]-[${osArch}]-[${javaVersion}]-[${userName}]-[${gradleVersion}]-[${agpVersion!=null?agpVersion:'unknown-agp-version'}]-[${buildTime}]-[${gitCommit != null ? gitCommit : 'unknown-git'}]-[${jobName != null ? jobName : 'unknown-build-job'}]-[${buildNumber != null ? buildNumber : 'unknown-build-number'}]"
+    }
+
+    def getAndroidGradlePluginVersionCompat() {
+        String version = null
+        try {
+            Class versionModel = Class.forName("com.android.builder.model.Version")
+            def versionFiled = versionModel.getDeclaredField("ANDROID_GRADLE_PLUGIN_VERSION")
+            versionFiled.setAccessible(true)
+            version = versionFiled.get(null)
+        } catch (Exception e) {
+        }
+        return version
     }
 
     def getBintrayUser(Project project) {
