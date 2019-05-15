@@ -7,6 +7,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.artifacts.ResolvedDependency
+import org.gradle.api.artifacts.UnknownConfigurationException
 
 
 /**
@@ -19,6 +20,9 @@ class ResolveDependencyPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
         this.project = project
+        if (project.plugins.hasPlugin("com.android.library")) {
+            return
+        }
 
         //宿主project path名
         String hostProjectPath = project.hasProperty("hostProject") ? project.ext["hostProject"] : null
@@ -44,6 +48,19 @@ class ResolveDependencyPlugin implements Plugin<Project> {
         resolveBundleConfigurationDependency()
 
 
+    }
+
+    static String getAndroidGradlePluginVersionCompat() {
+        String version = null
+        try {
+            Class versionModel = Class.forName("com.android.builder.model.Version")
+            def versionFiled = versionModel.getDeclaredField("ANDROID_GRADLE_PLUGIN_VERSION")
+            versionFiled.setAccessible(true)
+            version = versionFiled.get(null)
+        } catch (Exception e) {
+
+        }
+        return version
     }
 
     /**
@@ -76,9 +93,25 @@ class ResolveDependencyPlugin implements Plugin<Project> {
 
                 }
 
+
+                def agpVersion = getAndroidGradlePluginVersionCompat()
+                if (agpVersion >= '3.3.0' && agpVersion < '3.4.0') {
+                    try {
+                        //>=3.3.0 warning, so enable it
+                        def buildableArtifactImplClass = Class.forName("com.android.build.gradle.internal.api.artifact.BuildableArtifactImpl")
+                        buildableArtifactImplClass.@Companion.enableResolution()
+                    } catch (Exception e) {
+                    }
+                }
+
                 // 获取 宿主 中的依赖
-                copyConfiguration.resolvedConfiguration.getFirstLevelModuleDependencies().each {
-                    dfsGetDependencies(it, dependenciesMap)
+                try {
+                    def resolvedConfiguration = copyConfiguration.resolvedConfiguration
+                    resolvedConfiguration.getFirstLevelModuleDependencies().each {
+                        dfsGetDependencies(it, dependenciesMap)
+                    }
+                } catch (UnknownConfigurationException e) {
+
                 }
             }
         })
@@ -151,7 +184,14 @@ class ResolveDependencyPlugin implements Plugin<Project> {
                 if (configurationName.endsWith('RuntimeClasspath') && (hostDependenciesMap == null || hostDependenciesMap.size() == 0)) {
                     hostDependenciesMap = rewriteConfigurationDependencies(configurationName, hostDependenciesMap)
                 }
-
+                //同上
+                if (configurationName.endsWith('DependenciesMetadata') && (hostDependenciesMap == null || hostDependenciesMap.size() == 0)) {
+                    hostDependenciesMap = rewriteConfigurationDependencies(configurationName, hostDependenciesMap)
+                }
+                //同上
+                if (configurationName.equals('kotlinCompilerPluginClasspath') && (hostDependenciesMap == null || hostDependenciesMap.size() == 0)) {
+                    hostDependenciesMap = rewriteConfigurationDependencies(configurationName, hostDependenciesMap)
+                }
 
 
                 if (hostDependenciesMap == null || hostDependenciesMap.size() == 0) {
