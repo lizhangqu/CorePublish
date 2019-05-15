@@ -58,6 +58,8 @@ dependencies {
 
     compile 'com.google.code.gson:gson:2.8.4'
 
+    compile("org.yaml:snakeyaml:1.18")
+
 }
 
 buildscript {
