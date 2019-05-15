@@ -271,10 +271,14 @@ public class MavenPluginCompat implements Plugin<ProjectInternal> {
                     try {
                         publicationRegistry.registerPublication(project.getPath(), new DefaultProjectPublication(publicationId));
                     } catch (Exception e) {
-                        //compat for gradle 4.6
-                        //noinspection UnnecessaryQualifiedReference
-                        publicationRegistry.registerPublication(project.getPath(), new DefaultProjectPublication(org.gradle.internal.Describables.withTypeAndName("Maven repository", resolver.getName()), publicationId, true))
-
+                        try {
+                            //compat for gradle 4.6
+                            //noinspection UnnecessaryQualifiedReference
+                            publicationRegistry.registerPublication(project.getPath(), new DefaultProjectPublication(org.gradle.internal.Describables.withTypeAndName("Maven repository", resolver.getName()), publicationId, true))
+                        } catch (Exception e1) {
+                            //compat for gradle 5.1.1
+                            publicationRegistry.registerPublication(project, new DefaultProjectPublication(org.gradle.internal.Describables.withTypeAndName("Maven repository", resolver.getName()), publicationId, true))
+                        }
                     }
                 }
             }
