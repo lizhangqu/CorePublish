@@ -22,7 +22,7 @@ buildscript {
 }
 ```
 
-最低支持gradle 2.10，低于gradle 2.10时会报错，最高支持到gradle 5.0
+最低支持gradle 2.10，低于gradle 2.10时会报错，最高支持到gradle 5.4.1
 
 配置相关属性并应用插件
 ```
