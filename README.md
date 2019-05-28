@@ -212,6 +212,7 @@ uploadSnapshot这个task依赖uploadArchives，发布时请确保版本号为SNA
 
 ## Bintray发布
 
+Bintray发布请在gradle.properties中配置属性 release.bintray=true
 Bintray只支持release发布，使用命令，发布后需要同步到jcenter的需要到后台进行处理，首次发布需要审核，更多详情见https://bintray.com/
 
 ```
