@@ -223,7 +223,7 @@ gradle :moduleName:uploadBintray
 
 ## 自定义发布
 
-如果你需要自定义发布一些文件，需要自己定义publishing，然后使用gradle publis发布，如下
+如果你需要自定义发布一些文件，需要自己定义publishing，然后使用gradle publish发布，如下
 
 
 ```
