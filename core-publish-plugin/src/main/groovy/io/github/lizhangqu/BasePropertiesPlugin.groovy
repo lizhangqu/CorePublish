@@ -36,6 +36,11 @@ class BasePropertiesPlugin implements Plugin<Project> {
 
     @SuppressWarnings("GroovyUnusedDeclaration")
     protected String readPropertyFromProject(Project project, String key, String defaultValue, boolean throwIfNull) {
+        // local.properties中的属性优先级最高
+        String localProperties = readPropertyFromLocalPropertiesOrThrow(project, key, null, false)
+        if (localProperties != null && localProperties.length() > 0) {
+            return localProperties
+        }
         return project.hasProperty(key) && !(project.ext[key] instanceof MethodClosure) ? project.ext[key] : readPropertyFromLocalPropertiesOrThrow(project, key, defaultValue, throwIfNull)
     }
 
@@ -46,6 +51,11 @@ class BasePropertiesPlugin implements Plugin<Project> {
 
     @SuppressWarnings("GroovyUnusedDeclaration")
     protected String readPropertyFromProject(Project project, String key, boolean throwIfNull) {
+        // local.properties中的属性优先级最高
+        String localProperties = readPropertyFromLocalPropertiesOrThrow(project, key, null, false)
+        if (localProperties != null && localProperties.length() > 0) {
+            return localProperties
+        }
         return project.hasProperty(key) && !(project.ext[key] instanceof MethodClosure) ? project.ext[key] : readPropertyFromLocalPropertiesOrThrow(project, key, null, throwIfNull)
     }
 
