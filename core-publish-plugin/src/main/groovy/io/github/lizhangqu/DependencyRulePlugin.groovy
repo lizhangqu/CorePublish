@@ -5,9 +5,11 @@ import com.google.gson.reflect.TypeToken
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ResolvableDependencies
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
 import org.gradle.api.internal.artifacts.result.DefaultUnresolvedDependencyResult
 import org.gradle.util.GFileUtils
+
 
 /**
  * 依赖规则检测
@@ -51,38 +53,54 @@ class DependencyRulePlugin extends BasePropertiesPlugin {
                     return
                 }
 
-                //此处会提前解析所有依赖，所以有部分依赖必须放过，如archives,remoteBundleCompile,kotlinCompilerPluginClasspath等
-                configuration.getIncoming().getResolutionResult().getAllDependencies().each { dependencyResult ->
-                    if (dependencyResult instanceof DefaultUnresolvedDependencyResult) {
-                        return
-                    }
-                    if (dependencyResult instanceof DefaultResolvedDependencyResult) {
-                        def module = dependencyResult.getSelected().getModuleVersion()
-                        rules.each { RuleItem ruleItem ->
-                            if (ruleItem.group == module.group && ruleItem.artifactId == module.name) {
-                                String exception = checkVersionRule(ruleItem, module.version)
-                                if (exception != null) {
-                                    List<String> exceptions = dependencyExceptions.get(configuration)
-                                    if (exceptions == null) {
-                                        exceptions = new ArrayList<>()
-                                        dependencyExceptions.put(configuration, exceptions)
+                //适配aapt插件
+                if (configuration.getName() == '_internal_aapt2_binary') {
+                    return
+                }
+
+                def preBuildTask = project.getTasks().findByName("preBuild")
+                if (preBuildTask == null) {
+                    preBuildTask = project.getTasks().create("preBuild")
+                    def compileJava = project.getTasks().findByName("compileJava")
+                    compileJava?.dependsOn(preBuildTask)
+
+                    def installTask = project.getTasks().findByName("install")
+                    installTask?.dependsOn(preBuildTask)
+                }
+                preBuildTask.doFirst {
+                    //此处会提前解析所有依赖，所以有部分依赖必须放过，如archives,remoteBundleCompile,kotlinCompilerPluginClasspath等
+                    configuration.getIncoming().getResolutionResult().getAllDependencies().each { dependencyResult ->
+                        if (dependencyResult instanceof DefaultUnresolvedDependencyResult) {
+                            return
+                        }
+                        if (dependencyResult instanceof DefaultResolvedDependencyResult) {
+                            def module = dependencyResult.getSelected().getModuleVersion()
+                            rules.each { RuleItem ruleItem ->
+                                if (ruleItem.group == module.group && ruleItem.artifactId == module.name) {
+                                    String exception = checkVersionRule(ruleItem, module.version)
+                                    if (exception != null) {
+                                        List<String> exceptions = dependencyExceptions.get(configuration)
+                                        if (exceptions == null) {
+                                            exceptions = new ArrayList<>()
+                                            dependencyExceptions.put(configuration, exceptions)
+                                        }
+                                        exceptions.add("${exception} 依赖来自 ${dependencyResult}")
                                     }
-                                    exceptions.add("${exception} 依赖来自 ${dependencyResult}")
                                 }
                             }
                         }
                     }
-                }
-            }
 
-            if (dependencyExceptions != null && dependencyExceptions.size() > 0) {
-                dependencyExceptions.each { key, List<String> list ->
-                    project.logger.error("----------------------->${key}")
-                    list.each { value ->
-                        project.logger.error("${value}")
+                    if (dependencyExceptions != null && dependencyExceptions.size() > 0) {
+                        dependencyExceptions.each { key, List<String> list ->
+                            project.logger.error("----------------------->${key}")
+                            list.each { value ->
+                                project.logger.error("${value}")
+                            }
+                        }
+                        throw new GradleException("版本规则校验不满足，构建失败")
                     }
                 }
-                throw new GradleException("版本规则校验不满足，构建失败")
             }
         }
     }
