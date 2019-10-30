@@ -5,7 +5,6 @@ import com.google.gson.reflect.TypeToken
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ResolvableDependencies
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
 import org.gradle.api.internal.artifacts.result.DefaultUnresolvedDependencyResult
 import org.gradle.util.GFileUtils
