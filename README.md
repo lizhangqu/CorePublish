@@ -144,6 +144,51 @@ POM_ENABLE_JAVADOC=false //是否生成javadoc
 POM_ENABLE_COORDINATE=false //是否主动设置project的group，archivesBaseName，version
 ```
 
+## github registry支持
+
+### 发布配置
+
+```
+RELEASE_REPOSITORY_URL=https://maven.pkg.github.com/OWNER/REPOSITORY
+SNAPSHOT_REPOSITORY_URL=https://maven.pkg.github.com/OWNER/REPOSITORY
+RELEASE_REPOSITORY_USERNAME=OWNER
+RELEASE_REPOSITORY_PASSWORD=token
+SNAPSHOT_REPOSITORY_USERNAME=OWNER
+SNAPSHOT_REPOSITORY_PASSWORD=token
+```
+
+其中REPOSITORY改成仓库名，OWNER改成用户名，token改成github的token，token具有write:packages/read:packages权限
+
+### 拉取配置
+
+公共仓库
+
+```
+allprojects {
+    repositories {
+        maven (){
+            url "https://maven.pkg.github.com/"
+        }
+    }
+}
+```
+
+如果是私有的，请带上用户认证信息，token具有read:packages权限
+
+```
+allprojects {
+    repositories {
+         maven() {
+             url "https://maven.pkg.github.com/"
+             credentials {
+                 username = 'OWNER'
+                 password = 'TOKEN'
+             }
+         }
+    }
+}
+```
+
 ## maven发布
 
 ### release发布
